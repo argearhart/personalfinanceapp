@@ -1,0 +1,228 @@
+import React from 'react';
+import { CheckCircle2, ChevronRight, Calculator, Landmark, ArrowRight, Check, AlertCircle, BookCheck } from 'lucide-react';
+import { Transaction, ReconciliationRecord } from '../types';
+import { formatCurrency, cn } from '../lib/utils';
+import { format } from 'date-fns';
+
+interface ReconcileProps {
+  transactions: Transaction[];
+  onReconcile: (record: ReconciliationRecord) => void;
+}
+
+export default function Reconcile({ transactions, onReconcile }: ReconcileProps) {
+  const [step, setStep] = React.useState(1);
+  const [statementBalance, setStatementBalance] = React.useState('');
+  const [statementDate, setStatementDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+  const unclearedTransactions = transactions.filter(t => !t.isReconciled);
+  
+  const clearedTotal = unclearedTransactions
+    .filter(t => selectedIds.includes(t.id))
+    .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+
+  const targetBalance = parseFloat(statementBalance) || 0;
+  const difference = targetBalance - clearedTotal;
+
+  const toggleTransaction = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleFinish = () => {
+    if (Math.abs(difference) < 0.01) {
+      onReconcile({
+        id: crypto.randomUUID(),
+        date: new Date().toISOString(),
+        statementEndDate: statementDate,
+        statementBalance: targetBalance,
+        clearedBalance: clearedTotal,
+        difference: 0,
+        transactionIds: selectedIds
+      });
+      setStep(3); // Success state
+    }
+  };
+
+  if (step === 3) {
+    return (
+      <div className="max-w-2xl mx-auto text-center space-y-8 py-20 animate-in zoom-in-95 duration-500">
+        <div className="w-20 h-20 bg-editorial-accent-green text-white rounded-full flex items-center justify-center mx-auto shadow-xl">
+          <BookCheck size={40} />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-4xl italic font-serif">Checkbook Verified</h2>
+          <p className="text-sm text-editorial-muted italic font-serif">Transactions have been reconciled with your bank statement and marked as verified records.</p>
+        </div>
+        <button 
+          onClick={() => {
+            setStep(1);
+            setStatementBalance('');
+            setSelectedIds([]);
+          }}
+          className="btn-editorial"
+        >
+          Begin New Reconciliation
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-12 animate-in fade-in duration-500">
+      <header className="border-b border-editorial-border pb-4">
+        <h2 className="text-xl caps mb-2">Reconciliation Workspace</h2>
+        <p className="text-sm text-editorial-muted italic font-serif">Aligning internal journal entries with external bank records.</p>
+      </header>
+
+      {step === 1 ? (
+        <div className="max-w-md mx-auto space-y-8 bg-editorial-zebra border-fine border-dashed p-8">
+          <div className="text-center space-y-4">
+            <h3 className="text-2xl italic font-serif">Statement Parameters</h3>
+            <p className="text-sm text-editorial-muted italic font-serif leading-relaxed">Enter the details from your official bank statement.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="caps block">Ending Balance</label>
+              <div className="relative">
+                <input 
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-white border-fine p-3 text-2xl font-light focus:outline-none focus:border-editorial-ink"
+                  placeholder="0.00"
+                  value={statementBalance}
+                  onChange={(e) => setStatementBalance(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="caps block">Statement Date</label>
+              <input 
+                type="date"
+                className="w-full bg-white border-fine p-3 text-xs caps focus:outline-none focus:border-editorial-ink"
+                value={statementDate}
+                onChange={(e) => setStatementDate(e.target.value)}
+              />
+            </div>
+            <button 
+              onClick={() => setStep(2)}
+              disabled={!statementBalance}
+              className="w-full btn-editorial-primary !py-4 flex justify-center items-center gap-2"
+            >
+              Assemble Verification Queue
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          <div className="lg:col-span-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl italic font-serif">Verification Queue</h3>
+              <span className="caps text-editorial-muted">{selectedIds.length} of {unclearedTransactions.length} Selected</span>
+            </div>
+            
+            <div className="bg-white border-fine overflow-hidden">
+              <div className="grid grid-cols-12 caps bg-neutral-100 p-3 border-b border-editorial-border text-[9px]">
+                <div className="col-span-1"></div>
+                <div className="col-span-2">Date</div>
+                <div className="col-span-6">Payee / Description</div>
+                <div className="col-span-3 text-right">Amount</div>
+              </div>
+              <div className="max-h-[500px] overflow-y-auto divide-y divide-editorial-border">
+                {unclearedTransactions.length === 0 ? (
+                  <div className="p-12 text-center text-editorial-muted italic font-serif">
+                    All transactions have been cleared!
+                  </div>
+                ) : (
+                  unclearedTransactions.map((t) => (
+                    <div 
+                      key={t.id}
+                      onClick={() => toggleTransaction(t.id)}
+                      className={cn(
+                        "grid grid-cols-12 p-4 text-sm items-center cursor-pointer transition-colors",
+                        selectedIds.includes(t.id) ? "bg-editorial-accent-green/5" : "hover:bg-editorial-zebra"
+                      )}
+                    >
+                      <div className="col-span-1">
+                        <div className={cn(
+                          "w-4 h-4 border flex items-center justify-center transition-all",
+                          selectedIds.includes(t.id) ? "bg-editorial-ink border-editorial-ink" : "border-neutral-300 bg-white"
+                        )}>
+                          {selectedIds.includes(t.id) && <Check size={10} className="text-white" />}
+                        </div>
+                      </div>
+                      <div className="col-span-2 text-xs font-medium uppercase">{format(new Date(t.date), 'MMM dd')}</div>
+                      <div className="col-span-6 font-medium truncate pr-4">{t.payee}</div>
+                      <div className={cn(
+                        "col-span-3 text-right font-medium",
+                        t.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
+                      )}>
+                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          <aside className="lg:col-span-4 space-y-8">
+            <div className="card-editorial bg-editorial-zebra border-dashed space-y-6">
+              <h3 className="caps mb-6">Reconciliation Ledger</h3>
+
+              <div className="space-y-6">
+                <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
+                  <span className="text-xs italic font-serif">Statement Target</span>
+                  <span className="text-lg font-light tracking-tight">{formatCurrency(targetBalance)}</span>
+                </div>
+                <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
+                  <span className="text-xs italic font-serif">Internal Cleared</span>
+                  <span className="text-lg font-light tracking-tight">{formatCurrency(clearedTotal)}</span>
+                </div>
+                <div className="pt-4 flex justify-between items-baseline">
+                  <span className={cn(
+                    "caps transition-colors",
+                    Math.abs(difference) < 0.01 ? "text-editorial-accent-green" : "text-editorial-accent-red"
+                  )}>
+                    Discrepancy
+                  </span>
+                  <span className={cn(
+                    "text-2xl font-medium transition-all transition-all underline underline-offset-4 decoration-1",
+                    Math.abs(difference) < 0.01 ? "text-editorial-accent-green" : "text-editorial-accent-red"
+                  )}>
+                    {formatCurrency(difference)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-8 space-y-4">
+                <button 
+                  onClick={handleFinish}
+                  disabled={Math.abs(difference) >= 0.01}
+                  className="w-full btn-editorial-primary !py-4 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Confirm Verified State
+                </button>
+                <button 
+                  onClick={() => setStep(1)}
+                  className="w-full text-center caps text-[9px] text-editorial-muted hover:text-editorial-ink"
+                >
+                  Reset Parameters
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 border-fine italic text-[11px] leading-relaxed text-editorial-muted font-serif bg-white">
+              <AlertCircle size={14} className="mb-2 text-editorial-ink" />
+              Ensure all transactions appearing on your official statement are selected in the primary queue. The discrepancy must be exactly zero to finalize the journal entry.
+            </div>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+

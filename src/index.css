@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Georgia", serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  
+  --color-editorial-bg: #F9F9F7;
+  --color-editorial-ink: #1A1A1A;
+  --color-editorial-muted: #6B6B6B;
+  --color-editorial-border: #E5E5E1;
+  --color-editorial-accent-green: #4A5D23;
+  --color-editorial-accent-red: #9D3A3A;
+  --color-editorial-zebra: #F2F2EF;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-editorial-ink bg-editorial-bg;
+  }
+
+  h1, h2, h3 {
+    @apply font-serif italic tracking-tight;
+  }
+}
+
+@utility caps {
+  @apply uppercase tracking-widest text-[10px] font-bold text-editorial-muted;
+}
+
+@utility border-fine {
+  @apply border border-editorial-border;
+}
+
+@utility card-editorial {
+  @apply bg-white border-fine shadow-sm p-6;
+}
+
+@utility register-row {
+  @apply border-b border-editorial-border transition-colors hover:bg-editorial-zebra;
+}
+
+@utility btn-editorial {
+  @apply border-fine px-4 py-2 bg-white text-xs caps hover:bg-editorial-ink hover:text-white transition-all duration-200;
+}
+
+@utility btn-editorial-primary {
+  @apply bg-editorial-ink text-white px-4 py-2 text-xs caps hover:bg-editorial-ink/90 transition-all;
+}
