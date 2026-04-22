@@ -133,7 +133,7 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
             <div className="bg-white border-fine overflow-hidden">
               <div className="hidden md:block max-h-[500px] overflow-y-auto">
                 <table className="w-full border-collapse">
-                  <thead className="sticky top-0 caps bg-neutral-100 border-b border-editorial-border text-[10px] z-10">
+                  <thead className="sticky top-0 caps bg-neutral-100 border-b border-editorial-border text-sm z-10">
                     <tr>
                       <th scope="col" className="w-12 px-3 py-3 text-center">Pick</th>
                       <th scope="col" className="px-3 py-3 text-left">Date</th>
@@ -278,14 +278,14 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
                 </button>
                 <button 
                   onClick={() => setStep(1)}
-                  className="w-full text-center caps text-[9px] text-editorial-muted hover:text-editorial-ink"
+                  className="w-full text-center caps text-xs text-editorial-muted hover:text-editorial-ink"
                 >
                   Reset Parameters
                 </button>
               </div>
             </div>
             
-            <div className="p-6 border-fine italic text-[11px] leading-relaxed text-editorial-muted font-serif bg-white">
+            <div className="p-6 border-fine italic text-sm leading-relaxed text-editorial-muted font-serif bg-white">
               <AlertCircle size={14} className="mb-2 text-editorial-ink" />
               Statement target is compared to opening balance + previously reconciled transactions through the statement date + newly selected transactions.
             </div>
@@ -306,7 +306,7 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
               <div key={record.id} className="card-editorial bg-white group hover:border-editorial-ink transition-colors">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <p className="text-[10px] caps text-editorial-muted">Statement Period Ending</p>
+                    <p className="text-xs caps text-editorial-muted">Statement Period Ending</p>
                     <p className="font-serif italic text-lg">{format(new Date(record.statementEndDate), 'MMMM d, yyyy')}</p>
                   </div>
                   <div className="bg-editorial-zebra p-2 border-fine">
@@ -315,17 +315,17 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
                 </div>
 
                 <div className="space-y-2 border-t border-editorial-border pt-4">
-                  <div className="flex justify-between text-[11px]">
+                  <div className="flex justify-between text-sm">
                     <span className="italic font-serif">Statement Balance</span>
                     <span className="font-medium">{formatCurrency(record.statementBalance)}</span>
                   </div>
-                  <div className="flex justify-between text-[11px]">
+                  <div className="flex justify-between text-sm">
                     <span className="italic font-serif">Verified Transactions</span>
                     <span className="font-medium">{record.transactionIds.length} items</span>
                   </div>
-                  <div className="flex justify-between text-[11px] pt-2 border-t border-editorial-border border-dashed">
-                    <span className="caps text-[9px]">Verified On</span>
-                    <span className="text-[9px]">{format(new Date(record.date), 'MMM d, p')}</span>
+                  <div className="flex justify-between text-sm pt-2 border-t border-editorial-border border-dashed">
+                    <span className="caps text-xs">Verified On</span>
+                    <span className="text-xs">{format(new Date(record.date), 'MMM d, p')}</span>
                   </div>
                 </div>
               </div>

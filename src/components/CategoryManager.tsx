@@ -55,7 +55,7 @@ export default function CategoryManager({ categories, onAddCategory }: CategoryM
                     type="button"
                     onClick={() => setType('expense')}
                     className={cn(
-                      "flex-1 caps text-[9px] transition-all",
+                      "flex-1 caps text-xs transition-all",
                       type === 'expense' ? "bg-editorial-ink text-white" : "hover:bg-editorial-bg"
                     )}
                   >
@@ -65,7 +65,7 @@ export default function CategoryManager({ categories, onAddCategory }: CategoryM
                     type="button"
                     onClick={() => setType('income')}
                     className={cn(
-                      "flex-1 caps text-[9px] transition-all",
+                      "flex-1 caps text-xs transition-all",
                       type === 'income' ? "bg-editorial-ink text-white" : "hover:bg-editorial-bg"
                     )}
                   >
@@ -110,7 +110,7 @@ export default function CategoryManager({ categories, onAddCategory }: CategoryM
                 <div className="w-8 h-8 rounded-full border shadow-inner" style={{ backgroundColor: cat.color }} />
                 <div className="text-center">
                   <p className="text-sm font-medium">{cat.name}</p>
-                  <p className="text-[9px] caps opacity-50">{cat.type}</p>
+                  <p className="text-2xs caps opacity-50">{cat.type}</p>
                 </div>
               </div>
             ))}

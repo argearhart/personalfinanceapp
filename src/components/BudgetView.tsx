@@ -55,11 +55,11 @@ export default function BudgetView({ categories, budgets, transactions, onSetBud
             <div key={cat.id} className="card-editorial bg-white flex flex-col justify-between">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <span className="caps text-[9px] mb-1 block">Category</span>
+                  <span className="caps mb-1 block">Category</span>
                   <h3 className="text-xl italic font-serif">{cat.name}</h3>
                 </div>
                 <div className="text-right">
-                  <span className="caps text-[9px] mb-1 block">Allocation</span>
+                  <span className="caps mb-1 block">Allocation</span>
                   {isEditing === cat.id ? (
                     <div className="flex items-center gap-2">
                        <input 
@@ -96,12 +96,12 @@ export default function BudgetView({ categories, budgets, transactions, onSetBud
 
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
-                  <span className="text-[10px] caps italic">Utilization</span>
+                  <span className="text-xs caps italic">Utilization</span>
                   <span className={cn(
                     "text-sm font-light",
                     isOver ? "text-editorial-accent-red font-bold" : "text-editorial-ink"
                   )}>
-                    {formatCurrency(spent)} <span className="text-[10px] text-editorial-muted">/ {formatCurrency(limit)}</span>
+                    {formatCurrency(spent)} <span className="text-xs text-editorial-muted">/ {formatCurrency(limit)}</span>
                   </span>
                 </div>
                 <div className="w-full bg-editorial-zebra h-1.5 overflow-hidden">
@@ -114,7 +114,7 @@ export default function BudgetView({ categories, budgets, transactions, onSetBud
                   />
                 </div>
                 <div className="flex justify-between items-center bg-neutral-50 p-2 border-fine border-dashed">
-                  <span className="text-[9px] caps">Available</span>
+                  <span className="text-xs caps">Available</span>
                   <span className={cn(
                     "text-xs font-medium",
                     isOver ? "text-editorial-accent-red" : "text-editorial-ink"

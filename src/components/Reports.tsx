@@ -127,7 +127,7 @@ export default function Reports({ transactions, categories }: ReportsProps) {
             <button 
               onClick={() => setShowComparison(!showComparison)}
               className={cn(
-                "px-3 py-1 text-[9px] caps border-fine transition-all",
+                "px-3 py-1 text-xs caps border-fine transition-all",
                 showComparison ? "bg-editorial-ink text-white" : "hover:bg-neutral-100"
               )}
             >
@@ -144,7 +144,7 @@ export default function Reports({ transactions, categories }: ReportsProps) {
                   if (range === 'all') setShowComparison(false);
                 }}
                 className={cn(
-                  "px-3 py-1 caps text-[8px] transition-all",
+                  "px-3 py-1 caps text-2xs transition-all",
                   timeRange === range ? "bg-editorial-ink text-white" : "hover:bg-neutral-200"
                 )}
               >
@@ -158,24 +158,24 @@ export default function Reports({ transactions, categories }: ReportsProps) {
       {showComparison && comparisonInterval && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-8 bg-editorial-zebra border-fine">
           <div className="space-y-1">
-            <span className="caps text-[9px]">Benchmark Total</span>
+            <span className="caps">Benchmark Total</span>
             <p className="text-2xl font-light">{formatCurrency(comparisonTotal)}</p>
-            <p className="text-[10px] text-editorial-muted italic font-serif">Prior Period Baseline</p>
+            <p className="text-xs text-editorial-muted italic font-serif">Prior Period Baseline</p>
           </div>
           <div className="space-y-1">
-            <span className="caps text-[9px]">Current Period</span>
+            <span className="caps">Current Period</span>
             <p className="text-2xl font-light">{formatCurrency(currentTotal)}</p>
-            <p className="text-[10px] text-editorial-muted italic font-serif">Active Reporting Period</p>
+            <p className="text-xs text-editorial-muted italic font-serif">Active Reporting Period</p>
           </div>
           <div className="space-y-1">
-            <span className="caps text-[9px]">Variance</span>
+            <span className="caps">Variance</span>
             <p className={cn(
               "text-2xl font-bold",
               currentTotal > comparisonTotal ? "text-editorial-accent-red" : "text-editorial-accent-green"
             )}>
               {currentTotal > comparisonTotal ? '+' : ''}{(( (currentTotal - comparisonTotal) / (comparisonTotal || 1) ) * 100).toFixed(1)}%
             </p>
-            <p className="text-[10px] text-editorial-muted italic font-serif">Relative Expenditure Shift</p>
+            <p className="text-xs text-editorial-muted italic font-serif">Relative Expenditure Shift</p>
           </div>
         </div>
       )}
@@ -205,7 +205,7 @@ export default function Reports({ transactions, categories }: ReportsProps) {
                   </Pie>
                   <Tooltip 
                     formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ border: '1px solid #E5E5E1', borderRadius: '0', backgroundColor: '#F9F9F7', fontSize: '11px', boxShadow: 'none' }}
+                    contentStyle={{ border: '1px solid #E5E5E1', borderRadius: '0', backgroundColor: '#F9F9F7', fontSize: '0.85rem', boxShadow: 'none' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -216,7 +216,7 @@ export default function Reports({ transactions, categories }: ReportsProps) {
                 <div key={item.name}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="caps text-[10px] truncate">{item.name}</span>
+                    <span className="caps text-xs truncate">{item.name}</span>
                   </div>
                   <p className="text-sm">{formatCurrency(item.value)}</p>
                 </div>
@@ -233,7 +233,7 @@ export default function Reports({ transactions, categories }: ReportsProps) {
               {vendorData.map((vendor, i) => (
                 <div key={vendor.name} className="flex justify-between items-end border-b border-editorial-border/30 pb-2">
                   <div className="flex items-baseline gap-3">
-                    <span className="text-[10px] text-editorial-muted font-serif italic">{i + 1}.</span>
+                    <span className="text-xs text-editorial-muted font-serif italic">{i + 1}.</span>
                     <span className="text-xs font-medium truncate max-w-[120px]">{vendor.name}</span>
                   </div>
                   <span className="text-xs font-bold font-sans">{formatCurrency(vendor.value)}</span>
@@ -257,13 +257,13 @@ export default function Reports({ transactions, categories }: ReportsProps) {
                     dataKey="month" 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{ fontSize: 10, fill: '#6B6B6B', italic: true, fontFamily: 'Georgia' }} 
+                    tick={{ fontSize: 13, fill: '#6B6B6B', italic: true, fontFamily: 'Georgia' }} 
                   />
                   <YAxis hide />
                   <Tooltip 
                     formatter={(value: number) => formatCurrency(value)}
                     cursor={{ fill: '#E5E5E1', opacity: 0.3 }}
-                    contentStyle={{ border: '1px solid #E5E5E1', borderRadius: '0', fontSize: '11px', boxShadow: 'none' }}
+                    contentStyle={{ border: '1px solid #E5E5E1', borderRadius: '0', fontSize: '0.85rem', boxShadow: 'none' }}
                   />
                   <Bar dataKey="amount" fill="#1A1A1A" radius={[2, 2, 0, 0]} barSize={40} />
                 </BarChart>

@@ -112,7 +112,7 @@ export default function TransactionModal({
               type="button"
               onClick={() => setType('expense')}
               className={cn(
-                "flex-1 caps text-[9px] transition-all",
+                "flex-1 caps text-xs transition-all",
                 type === 'expense' ? "bg-editorial-ink text-white" : "hover:bg-neutral-200"
               )}
             >
@@ -122,7 +122,7 @@ export default function TransactionModal({
               type="button"
               onClick={() => setType('income')}
               className={cn(
-                "flex-1 caps text-[9px] transition-all",
+                "flex-1 caps text-xs transition-all",
                 type === 'income' ? "bg-editorial-ink text-white" : "hover:bg-neutral-200"
               )}
             >

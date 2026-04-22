@@ -285,11 +285,11 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
-                  <h3 className="caps text-[9px] border-b border-editorial-border pb-1">Column Mapping</h3>
+                  <h3 className="caps border-b border-editorial-border pb-1">Column Mapping</h3>
                   <div className="space-y-4">
                     {(Object.keys(mapping) as Array<keyof ColumnMapping>).map((field) => (
                       <div key={field} className="flex flex-col gap-1">
-                        <label className="text-[10px] caps italic opacity-70">{mappingFieldLabel(field)}</label>
+                        <label className="text-xs caps italic opacity-70">{mappingFieldLabel(field)}</label>
                         <select 
                           className="w-full bg-white border-fine p-2 text-xs focus:outline-none focus:border-editorial-ink appearance-none"
                           value={mapping[field]}
@@ -306,19 +306,19 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
                 </div>
 
                 <div className="space-y-6">
-                  <h3 className="caps text-[10px] border-b border-editorial-border pb-1">Data Preview</h3>
+                  <h3 className="caps border-b border-editorial-border pb-1">Data Preview</h3>
                   <div className="bg-white border-fine h-[350px] overflow-y-auto divide-y divide-editorial-border">
                     {data.slice(0, 10).map((row, i) => (
                       <div key={i} className="p-3 space-y-1">
-                        <p className="text-[10px] font-medium truncate">{row[mapping.payee] || 'No Payee Detected'}</p>
-                        <div className="flex justify-between items-center italic text-[9px] text-editorial-muted font-serif">
+                        <p className="text-xs font-medium truncate">{row[mapping.payee] || 'No Payee Detected'}</p>
+                        <div className="flex justify-between items-center italic text-xs text-editorial-muted font-serif">
                           <span>{row[mapping.date] || 'No Date'}</span>
                           <span className="font-sans font-bold text-editorial-ink">{String(previewMoney(row) || '—')}</span>
                         </div>
                       </div>
                     ))}
                     {data.length > 10 && (
-                      <div className="p-3 text-center text-[9px] caps opacity-40">Plus {data.length - 10} additional records...</div>
+                      <div className="p-3 text-center text-2xs caps opacity-40">Plus {data.length - 10} additional records...</div>
                     )}
                   </div>
                 </div>
@@ -326,13 +326,13 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
 
               {errors.length > 0 && (
                 <div className="bg-editorial-accent-red/5 border-fine border-editorial-accent-red p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-editorial-accent-red caps text-[9px] font-bold">
+                  <div className="flex items-center gap-2 text-editorial-accent-red caps text-xs font-bold">
                     <AlertCircle size={12} />
                     {String(errors[0] ?? '').startsWith('Imported ')
                       ? 'Imported; some rows were skipped'
                       : 'Processing Errors Detected'}
                   </div>
-                  <ul className="text-[9px] italic font-serif text-editorial-accent-red list-disc pl-4 h-24 overflow-y-auto">
+                  <ul className="text-xs italic font-serif text-editorial-accent-red list-disc pl-4 h-24 overflow-y-auto">
                     {errors.map((err, i) => <li key={i}>{err}</li>)}
                   </ul>
                 </div>

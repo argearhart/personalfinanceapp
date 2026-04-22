@@ -154,12 +154,12 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
           <div className="mt-8 space-y-3">
             <button 
               onClick={handleExport}
-              className="w-full flex items-center gap-2 text-[10px] caps text-editorial-muted hover:text-editorial-ink transition-colors"
+              className="w-full flex items-center gap-2 text-xs caps text-editorial-muted hover:text-editorial-ink transition-colors"
             >
               <Download size={12} />
               Export Database
             </button>
-            <label className="w-full flex items-center gap-2 text-[10px] caps text-editorial-muted hover:text-editorial-ink transition-colors cursor-pointer">
+            <label className="w-full flex items-center gap-2 text-xs caps text-editorial-muted hover:text-editorial-ink transition-colors cursor-pointer">
               <Upload size={12} />
               Import Backup
               <input type="file" className="hidden" accept=".json" onChange={handleImport} />
@@ -167,8 +167,8 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
           </div>
 
           <div className="mt-auto pt-8 border-t border-editorial-border">
-            <span className="caps text-[9px] block">Database: IndexedDB</span>
-            <span className="text-[9px] text-editorial-muted block mt-1">v.1.1.0 - AI Studio</span>
+            <span className="block uppercase tracking-widest text-2xs font-bold text-editorial-muted">Database: IndexedDB</span>
+            <span className="text-2xs text-editorial-muted block mt-1">v.1.1.0 - AI Studio</span>
           </div>
         </aside>
 

@@ -110,7 +110,7 @@ export default function Register({
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="caps text-[9px]">View Filters:</span>
+          <span className="caps">View Filters:</span>
           <button className="btn-editorial !py-1 !px-2 border-dashed">
             All Sources
           </button>
@@ -120,7 +120,7 @@ export default function Register({
       <div className="bg-white border-fine overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse">
-            <thead className="caps bg-neutral-100 border-b border-neutral-300 text-[10px]">
+            <thead className="caps bg-neutral-100 border-b border-neutral-300 text-sm">
               <tr>
                 <th scope="col" className="text-left px-3 py-3">Date</th>
                 <th scope="col" className="text-left px-3 py-3">Description / Payee</th>
@@ -154,10 +154,10 @@ export default function Register({
                       <td className="px-3 py-3">
                         <p className="font-semibold truncate">{transaction.payee}</p>
                         {transaction.memo && (
-                          <p className="text-[11px] text-editorial-muted italic font-serif truncate mt-0.5">{transaction.memo}</p>
+                          <p className="text-sm text-editorial-muted italic font-serif truncate mt-0.5">{transaction.memo}</p>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-right text-[11px] text-editorial-muted caps truncate">
+                      <td className="px-3 py-3 text-right text-sm text-editorial-muted caps truncate">
                         {category?.name || 'Uncategorized'}
                       </td>
                       <td
@@ -216,7 +216,7 @@ export default function Register({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="font-semibold">{transaction.payee}</p>
-                      <p className="text-[11px] text-editorial-muted uppercase">{format(new Date(transaction.date), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm text-editorial-muted uppercase">{format(new Date(transaction.date), 'MMM dd, yyyy')}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
@@ -237,8 +237,8 @@ export default function Register({
                       </button>
                     </div>
                   </div>
-                  {transaction.memo && <p className="text-[12px] italic font-serif text-editorial-muted">{transaction.memo}</p>}
-                  <div className="flex items-center justify-between text-[12px]">
+                  {transaction.memo && <p className="text-sm italic font-serif text-editorial-muted">{transaction.memo}</p>}
+                  <div className="flex items-center justify-between text-sm">
                     <span className="caps text-editorial-muted">{category?.name || 'Uncategorized'}</span>
                     <span className={cn("font-medium", transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red")}>
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}

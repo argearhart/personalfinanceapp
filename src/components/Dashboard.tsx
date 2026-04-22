@@ -80,19 +80,19 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
         <div className="bg-white p-8 group">
           <span className="caps mb-4 block">Monthly Income</span>
           <h3 className="text-4xl text-editorial-accent-green mb-1">{formatCurrency(income)}</h3>
-          <p className="text-[10px] text-editorial-muted italic font-serif">Verified deposits</p>
+          <p className="text-xs text-editorial-muted italic font-serif">Verified deposits</p>
         </div>
 
         <div className="bg-editorial-zebra p-8 group">
           <span className="caps mb-4 block text-editorial-muted">Monthly Expenses</span>
           <h3 className="text-4xl text-editorial-accent-red mb-1">{formatCurrency(expenses)}</h3>
-          <p className="text-[10px] text-editorial-muted italic font-serif">Total disbursements</p>
+          <p className="text-xs text-editorial-muted italic font-serif">Total disbursements</p>
         </div>
 
         <div className="bg-white p-8 group">
           <span className="caps mb-4 block">Net Surplus</span>
           <h3 className="text-4xl mb-1">{formatCurrency(income - expenses)}</h3>
-          <p className="text-[10px] text-editorial-muted italic font-serif">Monthly gain/loss</p>
+          <p className="text-xs text-editorial-muted italic font-serif">Monthly gain/loss</p>
         </div>
       </div>
 
@@ -110,13 +110,13 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 9, fill: '#6B6B6B', textTransform: 'uppercase' }} 
+                  tick={{ fontSize: 12, fill: '#6B6B6B', textTransform: 'uppercase' }} 
                   dy={10}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#6B6B6B' }}
+                  tick={{ fontSize: 13, fill: '#6B6B6B' }}
                   tickFormatter={(val) => `$${val}`}
                 />
                 <Tooltip 
@@ -125,7 +125,7 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
                     border: '1px solid #E5E5E1', 
                     borderRadius: '0px', 
                     boxShadow: 'none',
-                    fontSize: '11px'
+                    fontSize: '0.85rem'
                   }}
                 />
                 <Area 
@@ -154,7 +154,7 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
             <h2 className="text-lg caps">Recent Registry Entries</h2>
             <button 
               onClick={() => setActiveTab('register')}
-              className="text-[10px] caps hover:underline"
+              className="text-xs caps hover:underline"
             >
               View Full Checkbook index
             </button>
@@ -171,10 +171,10 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
                   return (
                     <div key={t.id} className="flex items-center justify-between p-4 bg-white hover:bg-editorial-zebra transition-colors">
                       <div className="flex items-center gap-6">
-                        <span className="text-[10px] caps w-16">{format(new Date(t.date), 'MMM dd')}</span>
+                        <span className="text-xs caps w-20 shrink-0">{format(new Date(t.date), 'MMM dd')}</span>
                         <div>
                           <p className="text-sm font-medium">{t.payee}</p>
-                          <p className="text-[9px] caps mt-0.5">{cat?.name || 'Uncategorized'}</p>
+                          <p className="text-2xs caps mt-0.5">{cat?.name || 'Uncategorized'}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -185,7 +185,7 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
                           {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                         </p>
                         {t.isReconciled && (
-                          <span className="text-[8px] border border-editorial-accent-green text-editorial-accent-green px-1 py-0 rounded-sm font-bold uppercase tracking-tighter">
+                          <span className="text-2xs border border-editorial-accent-green text-editorial-accent-green px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-tighter">
                             Checkbook Verified
                           </span>
                         )}

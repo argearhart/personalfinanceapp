@@ -12,11 +12,19 @@
   --color-editorial-accent-green: #4A5D23;
   --color-editorial-accent-red: #9D3A3A;
   --color-editorial-zebra: #F2F2EF;
+
+  /* Scales with html font-size; replaces hard-coded 8–9px labels. */
+  --text-2xs: 0.7rem;
 }
 
 @layer base {
+  /* Global base ~20px in common browsers: scales all rem text & Tailwind type utilities. */
+  html {
+    font-size: 125%;
+  }
+
   body {
-    @apply font-sans text-editorial-ink bg-editorial-bg;
+    @apply font-sans text-base leading-relaxed text-editorial-ink bg-editorial-bg;
   }
 
   h1, h2, h3 {
@@ -25,7 +33,7 @@
 }
 
 @utility caps {
-  @apply uppercase tracking-widest text-[10px] font-bold text-editorial-muted;
+  @apply uppercase tracking-widest text-xs font-bold text-editorial-muted;
 }
 
 @utility border-fine {
