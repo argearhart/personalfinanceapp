@@ -1,5 +1,16 @@
 import type { TransactionType } from '../types';
 
+/** True when every cell is empty — common for trailing blank lines in bank CSVs. */
+export function isCsvRowEffectivelyBlank(row: Record<string, unknown>): boolean {
+  if (Object.keys(row).length === 0) return true;
+  for (const v of Object.values(row)) {
+    if (v !== null && v !== undefined && String(v).trim() !== '') {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function parseMoney(value: unknown): number | null {
   if (value === null || value === undefined) return null;
 

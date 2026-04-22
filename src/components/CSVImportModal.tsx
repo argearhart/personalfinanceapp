@@ -3,7 +3,12 @@ import Papa from 'papaparse';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { Category, NewTransactionInput, type TransactionType } from '../types';
 import { format } from 'date-fns';
-import { deriveDebitCreditAmount, inferTypeFromTypeColumn, parseMoney } from '../lib/csvImport';
+import {
+  deriveDebitCreditAmount,
+  inferTypeFromTypeColumn,
+  isCsvRowEffectivelyBlank,
+  parseMoney,
+} from '../lib/csvImport';
 
 interface CSVImportModalProps {
   categories: Category[];
@@ -149,10 +154,13 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
     const importErrors: string[] = [];
     const processedTransactions = data.map((row, index) => {
       try {
-        const rawDate = row[mapping.date];
-        if (!rawDate) {
-          throw new Error('Missing required field (Date)');
+        if (isCsvRowEffectivelyBlank(row)) {
+          return null;
         }
+
+        const rawDate = row[mapping.date];
+        const dateStr =
+          rawDate === null || rawDate === undefined ? '' : String(rawDate).trim();
 
         const debitMapped = Boolean(mapping.debit);
         const creditMapped = Boolean(mapping.credit);
@@ -179,6 +187,14 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
           }
         }
 
+        if (!dateStr && signedAmount === null) {
+          return null;
+        }
+
+        if (!dateStr) {
+          throw new Error('Missing required field (Date)');
+        }
+
         if (signedAmount === null) {
           throw new Error('Missing financial amount. Map Amount, or map Debit/Credit columns.');
         }
@@ -194,9 +210,9 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
           rowCategoryName === '' || rowCategoryName === null || rowCategoryName === undefined
             ? categories[0]
             : categories.find(c => c.name.toLowerCase() === String(rowCategoryName).toLowerCase()) || categories[0];
-        const parsedDate = new Date(String(rawDate));
+        const parsedDate = new Date(dateStr);
         if (Number.isNaN(parsedDate.getTime())) {
-          throw new Error(`Invalid date "${String(rawDate)}"`);
+          throw new Error(`Invalid date "${dateStr}"`);
         }
 
         return {
@@ -214,11 +230,25 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
       }
     }).filter(Boolean);
 
-    if (importErrors.length > 0) {
-      setErrors(importErrors);
-    } else {
-      onImport(processedTransactions as NewTransactionInput[]);
+    if (processedTransactions.length === 0) {
+      setErrors(
+        importErrors.length > 0
+          ? importErrors
+          : ['No valid rows to import. Check column mapping or file contents.'],
+      );
+      return;
+    }
+
+    onImport(processedTransactions as NewTransactionInput[]);
+
+    if (importErrors.length === 0) {
+      setErrors([]);
       onClose();
+    } else {
+      setErrors([
+        `Imported ${processedTransactions.length} transaction${processedTransactions.length === 1 ? '' : 's'}. ${importErrors.length} row${importErrors.length === 1 ? '' : 's'} skipped:`,
+        ...importErrors,
+      ]);
     }
   };
 
@@ -296,7 +326,9 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
                 <div className="bg-editorial-accent-red/5 border-fine border-editorial-accent-red p-4 space-y-2">
                   <div className="flex items-center gap-2 text-editorial-accent-red caps text-[9px] font-bold">
                     <AlertCircle size={12} />
-                    Processing Errors Detected
+                    {String(errors[0] ?? '').startsWith('Imported ')
+                      ? 'Imported; some rows were skipped'
+                      : 'Processing Errors Detected'}
                   </div>
                   <ul className="text-[9px] italic font-serif text-editorial-accent-red list-disc pl-4 h-24 overflow-y-auto">
                     {errors.map((err, i) => <li key={i}>{err}</li>)}

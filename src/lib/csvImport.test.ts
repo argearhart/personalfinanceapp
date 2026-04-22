@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { deriveDebitCreditAmount, inferTypeFromTypeColumn, parseMoney } from './csvImport';
+import {
+  deriveDebitCreditAmount,
+  inferTypeFromTypeColumn,
+  isCsvRowEffectivelyBlank,
+  parseMoney,
+} from './csvImport';
+
+describe('isCsvRowEffectivelyBlank', () => {
+  it('is true for empty object', () => {
+    expect(isCsvRowEffectivelyBlank({})).toBe(true);
+  });
+
+  it('is true when every value is blank', () => {
+    expect(isCsvRowEffectivelyBlank({ a: '', b: '  ', c: null })).toBe(true);
+  });
+
+  it('is false when any value has content', () => {
+    expect(isCsvRowEffectivelyBlank({ a: '', b: 'x' })).toBe(false);
+  });
+});
 
 describe('parseMoney', () => {
   it('parses currency-ish strings', () => {
