@@ -1,14 +1,13 @@
 import React from 'react';
 import Papa from 'papaparse';
-import { X, Upload, Check, AlertCircle, ChevronRight, FileJson } from 'lucide-react';
-import { Category, TransactionType } from '../types';
-import { cn } from '../lib/utils';
+import { X, Upload, AlertCircle } from 'lucide-react';
+import { Category, NewTransactionInput, TransactionType } from '../types';
 import { format } from 'date-fns';
 
 interface CSVImportModalProps {
   categories: Category[];
   onClose: () => void;
-  onImport: (transactions: any[]) => void;
+  onImport: (transactions: NewTransactionInput[]) => void;
 }
 
 type ColumnMapping = {
@@ -21,9 +20,8 @@ type ColumnMapping = {
 };
 
 export default function CSVImportModal({ categories, onClose, onImport }: CSVImportModalProps) {
-  const [file, setFile] = React.useState<File | null>(null);
   const [headers, setHeaders] = React.useState<string[]>([]);
-  const [data, setData] = React.useState<any[]>([]);
+  const [data, setData] = React.useState<Record<string, unknown>[]>([]);
   const [mapping, setMapping] = React.useState<ColumnMapping>({
     date: '',
     payee: '',
@@ -34,19 +32,44 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
   });
   const [step, setStep] = React.useState(1);
   const [errors, setErrors] = React.useState<string[]>([]);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+
+  const parseAmount = React.useCallback((value: unknown) => {
+    const sanitized = String(value ?? '').replace(/[^\d.-]/g, '');
+    const parsed = Number.parseFloat(sanitized);
+    if (!Number.isFinite(parsed)) return null;
+    return parsed;
+  }, []);
+
+  React.useEffect(() => {
+    const activeElement = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      activeElement?.focus();
+    };
+  }, [onClose]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      setFile(selectedFile);
       Papa.parse(selectedFile, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           if (results.meta.fields) {
             setHeaders(results.meta.fields);
-            setData(results.data);
+            setData(results.data as Record<string, unknown>[]);
             setStep(2);
+            setErrors([]);
 
             // Auto-detect mappings
             const newMapping = { ...mapping };
@@ -78,23 +101,34 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
           throw new Error(`Row ${index + 1}: Missing required fields (Date/Amount)`);
         }
 
-        const amount = Math.abs(parseFloat(String(rawAmount).replace(/[^\d.-]/g, '')));
-        const type: TransactionType = String(row[mapping.type] || '').toLowerCase().includes('income') || parseFloat(rawAmount) > 0 ? 'income' : 'expense';
+        const parsedAmount = parseAmount(rawAmount);
+        if (parsedAmount === null) {
+          throw new Error(`Row ${index + 1}: Invalid amount "${String(rawAmount)}"`);
+        }
+
+        const amount = Math.abs(parsedAmount);
+        const typeHint = String(row[mapping.type] ?? '').toLowerCase();
+        const type: TransactionType =
+          typeHint.includes('income') || typeHint.includes('deposit') || parsedAmount > 0 ? 'income' : 'expense';
         
         // Find category
         const rowCategoryName = row[mapping.category];
         const category = categories.find(c => c.name.toLowerCase() === String(rowCategoryName).toLowerCase()) || categories[0];
+        const parsedDate = new Date(String(rawDate));
+        if (Number.isNaN(parsedDate.getTime())) {
+          throw new Error(`Row ${index + 1}: Invalid date "${String(rawDate)}"`);
+        }
 
         return {
-          date: format(new Date(rawDate), 'yyyy-MM-dd'),
-          payee: row[mapping.payee] || 'Unknown Payee',
+          date: format(parsedDate, 'yyyy-MM-dd'),
+          payee: String(row[mapping.payee] || 'Unknown Payee'),
           amount,
           type,
           categoryId: category.id,
-          memo: row[mapping.memo] || '',
+          memo: String(row[mapping.memo] || ''),
         };
       } catch (err) {
-        importErrors.push(String(err));
+        importErrors.push(err instanceof Error ? err.message : String(err));
         return null;
       }
     }).filter(Boolean);
@@ -102,17 +136,24 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
     if (importErrors.length > 0) {
       setErrors(importErrors);
     } else {
-      onImport(processedTransactions);
+      onImport(processedTransactions as NewTransactionInput[]);
       onClose();
     }
   };
 
   return (
     <div className="fixed inset-0 bg-editorial-ink/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-editorial-bg w-full max-w-2xl overflow-hidden border-fine shadow-2xl animate-in zoom-in-95 duration-300">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="csv-import-title"
+        tabIndex={-1}
+        className="bg-editorial-bg w-full max-w-2xl overflow-hidden border-fine shadow-2xl animate-in zoom-in-95 duration-300"
+      >
         <div className="px-8 py-6 border-b border-editorial-border flex items-center justify-between">
-          <h2 className="text-xl italic font-serif">CSV Import Utility</h2>
-          <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-editorial-muted">
+          <h2 id="csv-import-title" className="text-xl italic font-serif">CSV Import Utility</h2>
+          <button aria-label="Close CSV import" onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-editorial-muted">
             <X size={18} />
           </button>
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, AlertCircle, CheckCircle2, Settings2, Check } from 'lucide-react';
+import { Target } from 'lucide-react';
 import { Category, Budget, Transaction } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
@@ -18,17 +18,23 @@ export default function BudgetView({ categories, budgets, transactions, onSetBud
   const now = new Date();
   const currentMonthStart = startOfMonth(now);
   const currentMonthEnd = endOfMonth(now);
-
-  const getSpent = (catId: string) => {
-    return transactions
-      .filter(t => 
-        t.categoryId === catId && 
-        isWithinInterval(new Date(t.date), { start: currentMonthStart, end: currentMonthEnd })
-      )
-      .reduce((acc, t) => acc + t.amount, 0);
-  };
-
-  const expenseCategories = categories.filter(c => c.type === 'expense');
+  const budgetByCategory = React.useMemo(
+    () => new Map(budgets.map((budget) => [budget.categoryId, budget])),
+    [budgets]
+  );
+  const spentByCategory = React.useMemo(() => {
+    return transactions.reduce((acc, transaction) => {
+      if (!isWithinInterval(new Date(transaction.date), { start: currentMonthStart, end: currentMonthEnd })) {
+        return acc;
+      }
+      acc.set(transaction.categoryId, (acc.get(transaction.categoryId) ?? 0) + transaction.amount);
+      return acc;
+    }, new Map<string, number>());
+  }, [currentMonthEnd, currentMonthStart, transactions]);
+  const expenseCategories = React.useMemo(
+    () => categories.filter((category) => category.type === 'expense'),
+    [categories]
+  );
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
@@ -39,8 +45,8 @@ export default function BudgetView({ categories, budgets, transactions, onSetBud
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {expenseCategories.map(cat => {
-          const budget = budgets.find(b => b.categoryId === cat.id);
-          const spent = getSpent(cat.id);
+          const budget = budgetByCategory.get(cat.id);
+          const spent = spentByCategory.get(cat.id) ?? 0;
           const limit = budget?.amount || 0;
           const percentage = limit > 0 ? (spent / limit) * 100 : 0;
           const isOver = spent > limit && limit > 0;

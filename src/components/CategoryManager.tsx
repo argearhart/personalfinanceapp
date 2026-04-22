@@ -1,5 +1,4 @@
 import React from 'react';
-import { Plus, Tag, Trash2 } from 'lucide-react';
 import { Category, TransactionType } from '../types';
 import { cn } from '../lib/utils';
 

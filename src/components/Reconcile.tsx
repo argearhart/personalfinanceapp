@@ -1,16 +1,18 @@
 import React from 'react';
-import { CheckCircle2, ChevronRight, Calculator, Landmark, ArrowRight, Check, AlertCircle, BookCheck } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Landmark, Check, AlertCircle, BookCheck } from 'lucide-react';
 import { Transaction, ReconciliationRecord } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
+import { calculateReconciliationBalance } from '../lib/finance';
 import { format } from 'date-fns';
 
 interface ReconcileProps {
   transactions: Transaction[];
   history: ReconciliationRecord[];
+  startingBalance: number;
   onReconcile: (record: ReconciliationRecord) => void;
 }
 
-export default function Reconcile({ transactions, history, onReconcile }: ReconcileProps) {
+export default function Reconcile({ transactions, history, startingBalance, onReconcile }: ReconcileProps) {
   const [step, setStep] = React.useState(1);
   const [statementBalance, setStatementBalance] = React.useState('');
   const [statementDate, setStatementDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
@@ -18,12 +20,15 @@ export default function Reconcile({ transactions, history, onReconcile }: Reconc
 
   const unclearedTransactions = transactions.filter(t => !t.isReconciled);
   
-  const clearedTotal = unclearedTransactions
-    .filter(t => selectedIds.includes(t.id))
-    .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+  const { selectedUnclearedTotal, reconciledToDateTotal, calculatedLedgerBalance } = calculateReconciliationBalance({
+    transactions,
+    statementDate,
+    selectedIds,
+    startingBalance,
+  });
 
   const targetBalance = parseFloat(statementBalance) || 0;
-  const difference = targetBalance - clearedTotal;
+  const difference = targetBalance - calculatedLedgerBalance;
 
   const toggleTransaction = (id: string) => {
     setSelectedIds(prev => 
@@ -38,7 +43,7 @@ export default function Reconcile({ transactions, history, onReconcile }: Reconc
         date: new Date().toISOString(),
         statementEndDate: statementDate,
         statementBalance: targetBalance,
-        clearedBalance: clearedTotal,
+        clearedBalance: calculatedLedgerBalance,
         difference: 0,
         transactionIds: selectedIds
       });
@@ -126,44 +131,96 @@ export default function Reconcile({ transactions, history, onReconcile }: Reconc
             </div>
             
             <div className="bg-white border-fine overflow-hidden">
-              <div className="grid grid-cols-12 caps bg-neutral-100 p-3 border-b border-editorial-border text-[9px]">
-                <div className="col-span-1"></div>
-                <div className="col-span-2">Date</div>
-                <div className="col-span-6">Payee / Description</div>
-                <div className="col-span-3 text-right">Amount</div>
+              <div className="hidden md:block max-h-[500px] overflow-y-auto">
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 caps bg-neutral-100 border-b border-editorial-border text-[10px] z-10">
+                    <tr>
+                      <th scope="col" className="w-12 px-3 py-3 text-center">Pick</th>
+                      <th scope="col" className="px-3 py-3 text-left">Date</th>
+                      <th scope="col" className="px-3 py-3 text-left">Payee / Description</th>
+                      <th scope="col" className="px-3 py-3 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-editorial-border">
+                    {unclearedTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-12 text-center text-editorial-muted italic font-serif">
+                          All transactions have been cleared!
+                        </td>
+                      </tr>
+                    ) : (
+                      unclearedTransactions.map((transaction) => (
+                        <tr
+                          key={transaction.id}
+                          className={cn(
+                            "cursor-pointer transition-colors",
+                            selectedIds.includes(transaction.id) ? "bg-editorial-accent-green/5" : "hover:bg-editorial-zebra"
+                          )}
+                          onClick={() => toggleTransaction(transaction.id)}
+                        >
+                          <td className="px-3 py-3 text-center">
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "inline-flex w-4 h-4 border items-center justify-center transition-all",
+                                selectedIds.includes(transaction.id) ? "bg-editorial-ink border-editorial-ink" : "border-neutral-300 bg-white"
+                              )}
+                            >
+                              {selectedIds.includes(transaction.id) && <Check size={10} className="text-white" />}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-xs font-medium uppercase whitespace-nowrap">
+                            {format(new Date(transaction.date), 'MMM dd')}
+                          </td>
+                          <td className="px-3 py-3 font-medium truncate pr-4">{transaction.payee}</td>
+                          <td
+                            className={cn(
+                              "px-3 py-3 text-right font-medium whitespace-nowrap",
+                              transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
+                            )}
+                          >
+                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <div className="max-h-[500px] overflow-y-auto divide-y divide-editorial-border">
+
+              <div className="md:hidden max-h-[500px] overflow-y-auto divide-y divide-editorial-border">
                 {unclearedTransactions.length === 0 ? (
                   <div className="p-12 text-center text-editorial-muted italic font-serif">
                     All transactions have been cleared!
                   </div>
                 ) : (
-                  unclearedTransactions.map((t) => (
-                    <div 
-                      key={t.id}
-                      onClick={() => toggleTransaction(t.id)}
+                  unclearedTransactions.map((transaction) => (
+                    <button
+                      key={transaction.id}
+                      onClick={() => toggleTransaction(transaction.id)}
                       className={cn(
-                        "grid grid-cols-12 p-4 text-sm items-center cursor-pointer transition-colors",
-                        selectedIds.includes(t.id) ? "bg-editorial-accent-green/5" : "hover:bg-editorial-zebra"
+                        "w-full text-left p-4 space-y-2 transition-colors",
+                        selectedIds.includes(transaction.id) ? "bg-editorial-accent-green/5" : "hover:bg-editorial-zebra"
                       )}
                     >
-                      <div className="col-span-1">
-                        <div className={cn(
-                          "w-4 h-4 border flex items-center justify-center transition-all",
-                          selectedIds.includes(t.id) ? "bg-editorial-ink border-editorial-ink" : "border-neutral-300 bg-white"
-                        )}>
-                          {selectedIds.includes(t.id) && <Check size={10} className="text-white" />}
-                        </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs uppercase font-medium">{format(new Date(transaction.date), 'MMM dd')}</span>
+                        <span className={cn("text-sm font-medium", transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red")}>
+                          {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                        </span>
                       </div>
-                      <div className="col-span-2 text-xs font-medium uppercase">{format(new Date(t.date), 'MMM dd')}</div>
-                      <div className="col-span-6 font-medium truncate pr-4">{t.payee}</div>
-                      <div className={cn(
-                        "col-span-3 text-right font-medium",
-                        t.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
-                      )}>
-                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "inline-flex w-4 h-4 border items-center justify-center transition-all",
+                            selectedIds.includes(transaction.id) ? "bg-editorial-ink border-editorial-ink" : "border-neutral-300 bg-white"
+                          )}
+                        >
+                          {selectedIds.includes(transaction.id) && <Check size={10} className="text-white" />}
+                        </span>
+                        <span className="text-sm font-medium truncate">{transaction.payee}</span>
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
@@ -180,8 +237,20 @@ export default function Reconcile({ transactions, history, onReconcile }: Reconc
                   <span className="text-lg font-light tracking-tight">{formatCurrency(targetBalance)}</span>
                 </div>
                 <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
-                  <span className="text-xs italic font-serif">Internal Cleared</span>
-                  <span className="text-lg font-light tracking-tight">{formatCurrency(clearedTotal)}</span>
+                  <span className="text-xs italic font-serif">Opening Balance</span>
+                  <span className="text-lg font-light tracking-tight">{formatCurrency(startingBalance)}</span>
+                </div>
+                <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
+                  <span className="text-xs italic font-serif">Previously Reconciled (through date)</span>
+                  <span className="text-lg font-light tracking-tight">{formatCurrency(reconciledToDateTotal)}</span>
+                </div>
+                <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
+                  <span className="text-xs italic font-serif">Selected This Statement</span>
+                  <span className="text-lg font-light tracking-tight">{formatCurrency(selectedUnclearedTotal)}</span>
+                </div>
+                <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
+                  <span className="text-xs italic font-serif">Calculated Ledger Balance</span>
+                  <span className="text-lg font-light tracking-tight">{formatCurrency(calculatedLedgerBalance)}</span>
                 </div>
                 <div className="pt-4 flex justify-between items-baseline">
                   <span className={cn(
@@ -218,7 +287,7 @@ export default function Reconcile({ transactions, history, onReconcile }: Reconc
             
             <div className="p-6 border-fine italic text-[11px] leading-relaxed text-editorial-muted font-serif bg-white">
               <AlertCircle size={14} className="mb-2 text-editorial-ink" />
-              Ensure all transactions appearing on your official statement are selected in the primary queue. The discrepancy must be exactly zero to finalize the journal entry.
+              Statement target is compared to opening balance + previously reconciled transactions through the statement date + newly selected transactions.
             </div>
           </aside>
         </div>

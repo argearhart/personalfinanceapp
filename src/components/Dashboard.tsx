@@ -1,13 +1,4 @@
 import React from 'react';
-import { 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  TrendingUp, 
-  TrendingDown,
-  Calendar,
-  Filter,
-  Plus
-} from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { Transaction, Category } from '../types';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
@@ -21,14 +12,20 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ transactions, categories, setActiveTab, onAddTransaction }: DashboardProps) {
-  const now = new Date();
+  const now = React.useMemo(() => new Date(), []);
   const currentMonthStart = startOfMonth(now);
   const currentMonthEnd = endOfMonth(now);
+  const categoryById = React.useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories]
+  );
 
-  const monthTransactions = transactions.filter(t => {
-    const d = new Date(t.date);
-    return d >= currentMonthStart && d <= currentMonthEnd;
-  });
+  const monthTransactions = React.useMemo(() => {
+    return transactions.filter((transaction) => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
+    });
+  }, [currentMonthEnd, currentMonthStart, transactions]);
 
   const income = monthTransactions
     .filter(t => t.type === 'income')
@@ -39,17 +36,29 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
     .reduce((acc, t) => acc + t.amount, 0);
 
   // Chart Data Preparation
-  const last30Days = Array.from({ length: 15 }).map((_, i) => {
-    const date = subDays(now, 14 - i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dayTransactions = transactions.filter(t => t.date === dateStr);
-    
-    return {
-      name: format(date, 'MMM d'),
-      income: dayTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0),
-      expense: dayTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0),
-    };
-  });
+  const last30Days = React.useMemo(() => {
+    const totalsByDate = transactions.reduce((map, transaction) => {
+      const existing = map.get(transaction.date) ?? { income: 0, expense: 0 };
+      if (transaction.type === 'income') {
+        existing.income += transaction.amount;
+      } else {
+        existing.expense += transaction.amount;
+      }
+      map.set(transaction.date, existing);
+      return map;
+    }, new Map<string, { income: number; expense: number }>());
+
+    return Array.from({ length: 15 }).map((_, index) => {
+      const date = subDays(now, 14 - index);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const daily = totalsByDate.get(dateStr) ?? { income: 0, expense: 0 };
+      return {
+        name: format(date, 'MMM d'),
+        income: daily.income,
+        expense: daily.expense,
+      };
+    });
+  }, [now, transactions]);
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
@@ -158,7 +167,7 @@ export default function Dashboard({ transactions, categories, setActiveTab, onAd
             ) : (
               <div className="divide-y divide-editorial-border">
                 {transactions.slice(0, 5).map((t) => {
-                  const cat = categories.find(c => c.id === t.categoryId);
+                  const cat = categoryById.get(t.categoryId);
                   return (
                     <div key={t.id} className="flex items-center justify-between p-4 bg-white hover:bg-editorial-zebra transition-colors">
                       <div className="flex items-center gap-6">

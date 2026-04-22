@@ -5,10 +5,6 @@ import {
   RefreshCcw, 
   BarChart3, 
   Settings, 
-  ChevronRight,
-  PlusCircle,
-  Menu,
-  X,
   Target,
   Edit2,
   Download,
@@ -29,12 +25,11 @@ interface LayoutProps {
   balance: number;
   startingBalance: number;
   onUpdateStartingBalance: (amount: number) => void;
-  onImportData: (state: any) => void;
-  fullState: any;
+  onImportData: (state: unknown) => void;
+  fullState: unknown;
 }
 
 export default function Layout({ children, activeTab, setActiveTab, balance, startingBalance, onUpdateStartingBalance, onImportData, fullState }: LayoutProps) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isEditingBalance, setIsEditingBalance] = React.useState(false);
   const [editBalanceValue, setEditBalanceValue] = React.useState((startingBalance ?? 0).toString());
 
@@ -61,7 +56,8 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
         const json = JSON.parse(event.target?.result as string);
         onImportData(json);
       } catch (err) {
-        alert('Invalid backup file format.');
+        const message = err instanceof Error ? err.message : 'Invalid backup file format.';
+        alert(message);
       }
     };
     reader.readAsText(file);

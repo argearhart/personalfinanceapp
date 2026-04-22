@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Transaction, Category, Budget, AppState, ReconciliationRecord } from '../types';
 import { loadState, saveState } from '../lib/storage';
 import { saveToDatabase, loadFromDatabase } from '../lib/db';
+import { normalizeImportedAppState } from '../lib/validation';
 
 export function useFinance() {
   const [state, setState] = useState<AppState>(loadState());
   const isInitialMount = useRef(true);
+  const saveQueue = useRef(Promise.resolve());
 
   // Load from IndexedDB on startup
   useEffect(() => {
@@ -25,7 +27,11 @@ export function useFinance() {
       return;
     }
     saveState(state);
-    saveToDatabase(state);
+    saveQueue.current = saveQueue.current
+      .then(() => saveToDatabase(state))
+      .catch((error) => {
+        console.error('Failed to persist state to IndexedDB:', error);
+      });
   }, [state]);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'isReconciled'>) => {
@@ -95,9 +101,12 @@ export function useFinance() {
     }));
   }, []);
 
-  const importData = useCallback((newData: AppState) => {
-    // Basic validation could go here
-    setState(newData);
+  const importData = useCallback((newData: unknown) => {
+    const result = normalizeImportedAppState(newData);
+    if ('error' in result) {
+      throw new Error(result.error);
+    }
+    setState(result.value);
   }, []);
 
   const totalBalance = state.startingBalance + state.transactions.reduce((acc, t) => {

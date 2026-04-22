@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, Download, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
 import { Transaction, Category } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -19,21 +19,37 @@ export default function Register({
   onAddTransaction, 
   onImportCSV,
   onDeleteTransaction,
-  onUpdateTransaction 
+  onUpdateTransaction: _onUpdateTransaction
  }: RegisterProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
 
-  const filteredTransactions = transactions.filter(t => 
-    t.payee.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.memo?.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const categoryById = React.useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories]
+  );
+
+  const filteredTransactions = React.useMemo(() => {
+    const query = searchTerm.toLowerCase();
+    return transactions
+      .filter((transaction) =>
+        transaction.payee.toLowerCase().includes(query) ||
+        transaction.memo?.toLowerCase().includes(query)
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [searchTerm, transactions]);
+
+  const escapeCsvCell = (value: unknown) => {
+    const raw = String(value ?? '');
+    const protectedValue = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+    return `"${protectedValue.replace(/"/g, '""')}"`;
+  };
 
   const exportToCSV = () => {
     const headers = ['Date', 'Payee', 'Category', 'Type', 'Amount', 'Reconciled', 'Memo'];
     const rows = filteredTransactions.map(t => [
       t.date,
       t.payee,
-      categories.find(c => c.id === t.categoryId)?.name || '',
+      categoryById.get(t.categoryId)?.name || '',
       t.type,
       t.amount,
       t.isReconciled ? 'Yes' : 'No',
@@ -41,8 +57,8 @@ export default function Register({
     ]);
     
     const csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n"
-      + rows.map(e => e.join(",")).join("\n");
+      + headers.map(escapeCsvCell).join(",") + "\n"
+      + rows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
       
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -102,56 +118,113 @@ export default function Register({
       </div>
 
       <div className="bg-white border-fine overflow-hidden">
-        <div className="grid grid-cols-12 caps bg-neutral-100 p-3 border-b border-neutral-300 text-[9px]">
-          <div className="col-span-2">Date</div>
-          <div className="col-span-4">Description / Payee</div>
-          <div className="col-span-2 text-right">Category</div>
-          <div className="col-span-2 text-right">Amount</div>
-          <div className="col-span-2 text-center">Status</div>
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead className="caps bg-neutral-100 border-b border-neutral-300 text-[10px]">
+              <tr>
+                <th scope="col" className="text-left px-3 py-3">Date</th>
+                <th scope="col" className="text-left px-3 py-3">Description / Payee</th>
+                <th scope="col" className="text-right px-3 py-3">Category</th>
+                <th scope="col" className="text-right px-3 py-3">Amount</th>
+                <th scope="col" className="text-center px-3 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-editorial-border">
+              {filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-editorial-muted italic font-serif">
+                    No entries found in this journal index.
+                  </td>
+                </tr>
+              ) : (
+                filteredTransactions.map((transaction, idx) => {
+                  const category = categoryById.get(transaction.categoryId);
+                  return (
+                    <tr
+                      key={transaction.id}
+                      className={cn(
+                        "transition-colors group",
+                        idx % 2 === 1 ? "bg-editorial-zebra" : "bg-white",
+                        "hover:bg-editorial-ink/5"
+                      )}
+                    >
+                      <td className="px-3 py-3 text-xs font-medium uppercase whitespace-nowrap">
+                        {format(new Date(transaction.date), 'MMM dd')}
+                      </td>
+                      <td className="px-3 py-3">
+                        <p className="font-semibold truncate">{transaction.payee}</p>
+                        {transaction.memo && (
+                          <p className="text-[11px] text-editorial-muted italic font-serif truncate mt-0.5">{transaction.memo}</p>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-right text-[11px] text-editorial-muted caps truncate">
+                        {category?.name || 'Uncategorized'}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-3 py-3 text-right font-medium whitespace-nowrap",
+                          transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
+                        )}
+                      >
+                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center justify-center gap-3">
+                          <span
+                            aria-label={transaction.isReconciled ? 'Reconciled transaction' : 'Unreconciled transaction'}
+                            className={cn(
+                              "w-3 h-3 rounded-full",
+                              transaction.isReconciled ? "bg-editorial-accent-green" : "border border-neutral-400"
+                            )}
+                          />
+                          <button
+                            aria-label={`Delete transaction for ${transaction.payee}`}
+                            onClick={() => onDeleteTransaction(transaction.id)}
+                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-        
-        <div className="divide-y divide-editorial-border">
+
+        <div className="md:hidden divide-y divide-editorial-border">
           {filteredTransactions.length === 0 ? (
             <div className="px-6 py-12 text-center text-editorial-muted italic font-serif">
               No entries found in this journal index.
             </div>
           ) : (
-            filteredTransactions.map((t, idx) => {
-              const cat = categories.find(c => c.id === t.categoryId);
+            filteredTransactions.map((transaction, idx) => {
+              const category = categoryById.get(transaction.categoryId);
               return (
-                <div key={t.id} className={cn(
-                  "grid grid-cols-12 p-3 text-sm items-center transition-colors group",
-                  idx % 2 === 1 ? "bg-editorial-zebra" : "bg-white",
-                  "hover:bg-editorial-ink/5"
-                )}>
-                  <div className="col-span-2 text-xs font-medium uppercase">{format(new Date(t.date), 'MMM dd')}</div>
-                  <div className="col-span-4 overflow-hidden">
-                    <p className="font-semibold truncate">{t.payee}</p>
-                    {t.memo && <p className="text-[10px] text-editorial-muted italic font-serif truncate mt-0.5">{t.memo}</p>}
-                  </div>
-                  <div className="col-span-2 text-right text-[10px] text-editorial-muted caps truncate">{cat?.name || 'Uncategorized'}</div>
-                  <div className={cn(
-                    "col-span-2 text-right font-medium",
-                    t.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
-                  )}>
-                    {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
-                  </div>
-                  <div className="col-span-2 flex items-center justify-center gap-3">
-                    <div className={cn(
-                      "w-3 h-3 rounded-full",
-                      t.isReconciled ? "bg-editorial-accent-green" : "border border-neutral-400"
-                    )} />
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteTransaction(t.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
+                <article key={transaction.id} className={cn("p-4 space-y-2", idx % 2 === 1 ? "bg-editorial-zebra" : "bg-white")}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{transaction.payee}</p>
+                      <p className="text-[11px] text-editorial-muted uppercase">{format(new Date(transaction.date), 'MMM dd, yyyy')}</p>
+                    </div>
+                    <button
+                      aria-label={`Delete transaction for ${transaction.payee}`}
+                      onClick={() => onDeleteTransaction(transaction.id)}
+                      className="p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
-                </div>
+                  {transaction.memo && <p className="text-[12px] italic font-serif text-editorial-muted">{transaction.memo}</p>}
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="caps text-editorial-muted">{category?.name || 'Uncategorized'}</span>
+                    <span className={cn("font-medium", transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red")}>
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    </span>
+                  </div>
+                </article>
               );
             })
           )}

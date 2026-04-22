@@ -1,13 +1,13 @@
 import React from 'react';
-import { X, Check, Save } from 'lucide-react';
-import { Category, TransactionType } from '../types';
+import { X } from 'lucide-react';
+import { Category, NewTransactionInput, TransactionType } from '../types';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 
 interface TransactionModalProps {
   categories: Category[];
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: NewTransactionInput) => void;
 }
 
 export default function TransactionModal({ categories, onClose, onSubmit }: TransactionModalProps) {
@@ -19,6 +19,24 @@ export default function TransactionModal({ categories, onClose, onSubmit }: Tran
   const [memo, setMemo] = React.useState('');
 
   const filteredCategories = categories.filter(c => c.type === type);
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const activeElement = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      activeElement?.focus();
+    };
+  }, [onClose]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,10 +54,17 @@ export default function TransactionModal({ categories, onClose, onSubmit }: Tran
 
   return (
     <div className="fixed inset-0 bg-editorial-ink/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-editorial-bg w-full max-w-lg overflow-hidden border-fine shadow-2xl animate-in zoom-in-95 duration-300">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="transaction-dialog-title"
+        tabIndex={-1}
+        className="bg-editorial-bg w-full max-w-lg overflow-hidden border-fine shadow-2xl animate-in zoom-in-95 duration-300"
+      >
         <div className="px-8 py-6 border-b border-editorial-border flex items-center justify-between">
-          <h2 className="text-xl italic font-serif">Checkbook Entry</h2>
-          <button onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-editorial-muted">
+          <h2 id="transaction-dialog-title" className="text-xl italic font-serif">Checkbook Entry</h2>
+          <button aria-label="Close transaction entry dialog" onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-editorial-muted">
             <X size={18} />
           </button>
         </div>

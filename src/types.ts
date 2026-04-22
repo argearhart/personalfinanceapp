@@ -19,6 +19,8 @@ export interface Transaction {
   tags?: string[];
 }
 
+export type NewTransactionInput = Omit<Transaction, 'id' | 'isReconciled'>;
+
 export interface Budget {
   id: string;
   categoryId: string;

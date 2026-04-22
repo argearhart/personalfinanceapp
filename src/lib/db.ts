@@ -6,7 +6,7 @@ export class LedgerDatabase extends Dexie {
   categories!: Table<Category>;
   budgets!: Table<Budget>;
   reconciliationHistory!: Table<ReconciliationRecord>;
-  metadata!: Table<{ key: string; value: any }>;
+  metadata!: Table<{ key: string; value: number }>;
 
   constructor() {
     super('LedgerDatabase');

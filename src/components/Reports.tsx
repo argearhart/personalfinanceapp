@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { Transaction, Category } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subYears } from 'date-fns';
@@ -32,12 +32,18 @@ export default function Reports({ transactions, categories }: ReportsProps) {
   };
 
   const currentInterval = getRangeInterval(timeRange);
+  const expenseCategories = React.useMemo(
+    () => categories.filter((category) => category.type === 'expense'),
+    [categories]
+  );
   
-  const filteredTransactions = transactions.filter(t => {
-    if (timeRange === 'all') return true;
-    const tDate = new Date(t.date);
-    return isWithinInterval(tDate, currentInterval);
-  });
+  const filteredTransactions = React.useMemo(() => {
+    return transactions.filter((transaction) => {
+      if (timeRange === 'all') return true;
+      const transactionDate = new Date(transaction.date);
+      return isWithinInterval(transactionDate, currentInterval);
+    });
+  }, [currentInterval, timeRange, transactions]);
 
   const expenseTransactions = filteredTransactions.filter(t => t.type === 'expense');
 
@@ -50,24 +56,32 @@ export default function Reports({ transactions, categories }: ReportsProps) {
   };
 
   const comparisonInterval = getComparisonInterval();
-  const comparisonTransactions = comparisonInterval 
-    ? transactions.filter(t => t.type === 'expense' && isWithinInterval(new Date(t.date), comparisonInterval))
-    : [];
+  const comparisonTransactions = React.useMemo(() => {
+    if (!comparisonInterval) return [];
+    return transactions.filter(
+      (transaction) => transaction.type === 'expense' && isWithinInterval(new Date(transaction.date), comparisonInterval)
+    );
+  }, [comparisonInterval, transactions]);
 
   const comparisonTotal = comparisonTransactions.reduce((acc, t) => acc + t.amount, 0);
   const currentTotal = expenseTransactions.reduce((acc, t) => acc + t.amount, 0);
 
   // Category Distribution
-  const categoryData = categories
-    .filter(c => c.type === 'expense')
-    .map(cat => {
-      const value = expenseTransactions
-        .filter(t => t.categoryId === cat.id)
-        .reduce((acc, t) => acc + t.amount, 0);
-      return { name: cat.name, value, color: cat.color };
-    })
-    .filter(d => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+  const categoryData = React.useMemo(() => {
+    const spendByCategory = expenseTransactions.reduce((acc, transaction) => {
+      acc.set(transaction.categoryId, (acc.get(transaction.categoryId) ?? 0) + transaction.amount);
+      return acc;
+    }, new Map<string, number>());
+
+    return expenseCategories
+      .map((category) => ({
+        name: category.name,
+        value: spendByCategory.get(category.id) ?? 0,
+        color: category.color,
+      }))
+      .filter((entry) => entry.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [expenseCategories, expenseTransactions]);
 
   // Payee Analysis
   const vendorData = Array.from(
@@ -81,20 +95,24 @@ export default function Reports({ transactions, categories }: ReportsProps) {
   .slice(0, 10);
 
   // Monthly Trend Data (for the current year)
-  const monthlyTrendData = Array.from({ length: 12 }).map((_, i) => {
-    const monthDate = new Date(new Date().getFullYear(), i, 1);
-    const monthStart = startOfMonth(monthDate);
-    const monthEnd = endOfMonth(monthDate);
-    
-    const amount = transactions
-      .filter(t => t.type === 'expense' && isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd }))
-      .reduce((acc, t) => acc + t.amount, 0);
-      
-    return {
-      month: format(monthDate, 'MMM'),
-      amount
-    };
-  });
+  const monthlyTrendData = React.useMemo(() => {
+    const totalsByMonth = transactions.reduce((acc, transaction) => {
+      if (transaction.type !== 'expense') return acc;
+      const date = new Date(transaction.date);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      acc.set(key, (acc.get(key) ?? 0) + transaction.amount);
+      return acc;
+    }, new Map<string, number>());
+
+    return Array.from({ length: 12 }).map((_, monthIndex) => {
+      const monthDate = new Date(new Date().getFullYear(), monthIndex, 1);
+      const key = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+      return {
+        month: format(monthDate, 'MMM'),
+        amount: totalsByMonth.get(key) ?? 0,
+      };
+    });
+  }, [transactions]);
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">

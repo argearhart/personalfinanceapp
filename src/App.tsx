@@ -5,15 +5,17 @@
 
 import React from 'react';
 import { useFinance } from './hooks/useFinance';
+import { NewTransactionInput } from './types';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import Register from './components/Register';
-import Reconcile from './components/Reconcile';
-import Reports from './components/Reports';
-import BudgetView from './components/BudgetView';
-import CategoryManager from './components/CategoryManager';
-import TransactionModal from './components/TransactionModal';
-import CSVImportModal from './components/CSVImportModal';
+
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const Register = React.lazy(() => import('./components/Register'));
+const Reconcile = React.lazy(() => import('./components/Reconcile'));
+const Reports = React.lazy(() => import('./components/Reports'));
+const BudgetView = React.lazy(() => import('./components/BudgetView'));
+const CategoryManager = React.lazy(() => import('./components/CategoryManager'));
+const TransactionModal = React.lazy(() => import('./components/TransactionModal'));
+const CSVImportModal = React.lazy(() => import('./components/CSVImportModal'));
 
 export default function App() {
   const [activeTab, setActiveTab] = React.useState('dashboard');
@@ -32,10 +34,16 @@ export default function App() {
     totalBalance 
   } = useFinance();
 
-  const handleCSVImport = (transactions: any[]) => {
+  const handleCSVImport = (transactions: NewTransactionInput[]) => {
     transactions.forEach(t => addTransaction(t));
     setIsCSVModalOpen(false);
   };
+
+  const loadingFallback = (
+    <div role="status" aria-live="polite" className="p-6 text-sm italic font-serif text-editorial-muted">
+      Loading view...
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -64,6 +72,7 @@ export default function App() {
           <Reconcile 
             transactions={state.transactions} 
             history={state.reconciliationHistory}
+            startingBalance={state.startingBalance}
             onReconcile={reconcileTransactions}
           />
         );
@@ -105,23 +114,27 @@ export default function App() {
       onImportData={importData}
       fullState={state}
     >
-      {renderContent()}
+      <React.Suspense fallback={loadingFallback}>
+        {renderContent()}
+      </React.Suspense>
       
-      {isModalOpen && (
-        <TransactionModal 
-          categories={state.categories} 
-          onClose={() => setIsModalOpen(false)}
-          onSubmit={addTransaction}
-        />
-      )}
+      <React.Suspense fallback={null}>
+        {isModalOpen && (
+          <TransactionModal 
+            categories={state.categories} 
+            onClose={() => setIsModalOpen(false)}
+            onSubmit={addTransaction}
+          />
+        )}
 
-      {isCSVModalOpen && (
-        <CSVImportModal 
-          categories={state.categories}
-          onClose={() => setIsCSVModalOpen(false)}
-          onImport={handleCSVImport}
-        />
-      )}
+        {isCSVModalOpen && (
+          <CSVImportModal 
+            categories={state.categories}
+            onClose={() => setIsCSVModalOpen(false)}
+            onImport={handleCSVImport}
+          />
+        )}
+      </React.Suspense>
     </Layout>
   );
 }
