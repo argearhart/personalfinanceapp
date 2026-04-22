@@ -1,12 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Transaction, Category, Budget, AppState, ReconciliationRecord } from '../types';
 import { loadState, saveState } from '../lib/storage';
+import { saveToDatabase, loadFromDatabase } from '../lib/db';
 
 export function useFinance() {
-  const [state, setState] = useState<AppState>(loadState);
+  const [state, setState] = useState<AppState>(loadState());
+  const isInitialMount = useRef(true);
 
+  // Load from IndexedDB on startup
   useEffect(() => {
+    async function initDb() {
+      const dbState = await loadFromDatabase();
+      if (dbState) {
+        setState(dbState);
+      }
+    }
+    initDb();
+  }, []);
+
+  // Save to both localStorage (backup) and IndexedDB
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     saveState(state);
+    saveToDatabase(state);
   }, [state]);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'isReconciled'>) => {
@@ -76,6 +95,11 @@ export function useFinance() {
     }));
   }, []);
 
+  const importData = useCallback((newData: AppState) => {
+    // Basic validation could go here
+    setState(newData);
+  }, []);
+
   const totalBalance = state.startingBalance + state.transactions.reduce((acc, t) => {
     return acc + (t.type === 'income' ? t.amount : -t.amount);
   }, 0);
@@ -89,6 +113,7 @@ export function useFinance() {
     setBudget,
     reconcileTransactions,
     setStartingBalance,
+    importData,
     totalBalance,
   };
 }

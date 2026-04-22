@@ -6,10 +6,11 @@ import { format } from 'date-fns';
 
 interface ReconcileProps {
   transactions: Transaction[];
+  history: ReconciliationRecord[];
   onReconcile: (record: ReconciliationRecord) => void;
 }
 
-export default function Reconcile({ transactions, onReconcile }: ReconcileProps) {
+export default function Reconcile({ transactions, history, onReconcile }: ReconcileProps) {
   const [step, setStep] = React.useState(1);
   const [statementBalance, setStatementBalance] = React.useState('');
   const [statementDate, setStatementDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
@@ -221,6 +222,47 @@ export default function Reconcile({ transactions, onReconcile }: ReconcileProps)
             </div>
           </aside>
         </div>
+      )}
+
+      {/* Reconciliation History Section */}
+      {step === 1 && history.length > 0 && (
+        <section className="pt-12 border-t border-editorial-border animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-2 mb-6">
+            <CheckCircle2 size={18} className="text-editorial-ink" />
+            <h3 className="text-lg caps">Reconciliation Archive</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {history.map((record) => (
+              <div key={record.id} className="card-editorial bg-white group hover:border-editorial-ink transition-colors">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-[10px] caps text-editorial-muted">Statement Period Ending</p>
+                    <p className="font-serif italic text-lg">{format(new Date(record.statementEndDate), 'MMMM d, yyyy')}</p>
+                  </div>
+                  <div className="bg-editorial-zebra p-2 border-fine">
+                    < Landmark size={14} className="text-editorial-ink" />
+                  </div>
+                </div>
+
+                <div className="space-y-2 border-t border-editorial-border pt-4">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="italic font-serif">Statement Balance</span>
+                    <span className="font-medium">{formatCurrency(record.statementBalance)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="italic font-serif">Verified Transactions</span>
+                    <span className="font-medium">{record.transactionIds.length} items</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] pt-2 border-t border-editorial-border border-dashed">
+                    <span className="caps text-[9px]">Verified On</span>
+                    <span className="text-[9px]">{format(new Date(record.date), 'MMM d, p')}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

@@ -28,6 +28,7 @@ export default function App() {
     addCategory,
     setBudget,
     setStartingBalance,
+    importData,
     totalBalance 
   } = useFinance();
 
@@ -62,6 +63,7 @@ export default function App() {
         return (
           <Reconcile 
             transactions={state.transactions} 
+            history={state.reconciliationHistory}
             onReconcile={reconcileTransactions}
           />
         );
@@ -100,6 +102,8 @@ export default function App() {
       balance={totalBalance}
       startingBalance={state.startingBalance}
       onUpdateStartingBalance={setStartingBalance}
+      onImportData={importData}
+      fullState={state}
     >
       {renderContent()}
       

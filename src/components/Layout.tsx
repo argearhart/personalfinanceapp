@@ -10,7 +10,9 @@ import {
   Menu,
   X,
   Target,
-  Edit2
+  Edit2,
+  Download,
+  Upload
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -27,12 +29,43 @@ interface LayoutProps {
   balance: number;
   startingBalance: number;
   onUpdateStartingBalance: (amount: number) => void;
+  onImportData: (state: any) => void;
+  fullState: any;
 }
 
-export default function Layout({ children, activeTab, setActiveTab, balance, startingBalance, onUpdateStartingBalance }: LayoutProps) {
+export default function Layout({ children, activeTab, setActiveTab, balance, startingBalance, onUpdateStartingBalance, onImportData, fullState }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isEditingBalance, setIsEditingBalance] = React.useState(false);
   const [editBalanceValue, setEditBalanceValue] = React.useState((startingBalance ?? 0).toString());
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(fullState, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ledger-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        onImportData(json);
+      } catch (err) {
+        alert('Invalid backup file format.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   React.useEffect(() => {
     setEditBalanceValue((startingBalance ?? 0).toString());
@@ -122,9 +155,24 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
           </nav>
 
           {/* Mobile Nav Trigger Button is handled by specific layout, but we keep it minimal */}
+          <div className="mt-8 space-y-3">
+            <button 
+              onClick={handleExport}
+              className="w-full flex items-center gap-2 text-[10px] caps text-editorial-muted hover:text-editorial-ink transition-colors"
+            >
+              <Download size={12} />
+              Export Database
+            </button>
+            <label className="w-full flex items-center gap-2 text-[10px] caps text-editorial-muted hover:text-editorial-ink transition-colors cursor-pointer">
+              <Upload size={12} />
+              Import Backup
+              <input type="file" className="hidden" accept=".json" onChange={handleImport} />
+            </label>
+          </div>
+
           <div className="mt-auto pt-8 border-t border-editorial-border">
-            <span className="caps text-[9px] block">Locally Encrypted</span>
-            <span className="text-[9px] text-editorial-muted block mt-1">v.1.0.4 - AI Studio</span>
+            <span className="caps text-[9px] block">Database: IndexedDB</span>
+            <span className="text-[9px] text-editorial-muted block mt-1">v.1.1.0 - AI Studio</span>
           </div>
         </aside>
 
