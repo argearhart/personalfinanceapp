@@ -26,7 +26,7 @@ This application follows a high-contrast, minimalist design inspired by classic 
 
 ### 4. Desktop Integration (PWA)
 - **Installable**: Can be installed as a standalone desktop application via standard web browsers (Chrome/Edge).
-- **Custom Icon**: Features a unique, editorial-style app icon for your desktop launcher.
+- **Custom Icon**: Uses `public/icon.ico` for the browser tab + PWA install metadata (see `public/manifest.webmanifest`).
 - **Standalone Window**: Runs in a dedicated app window without browser distractions.
 
 ## 🚀 Getting Started
@@ -37,10 +37,54 @@ If you are running this locally from the source code:
 2. **Start Dev Server**: `npm run dev`
 3. **Open Browser**: Navigate to `http://localhost:3000`
 
-### Desktop Installation
-1. Open the hosted application in Chrome or Edge.
-2. Click the **"Install"** icon in the address bar.
-3. The app will now appear on your **Desktop** and in your **Applications** menu.
+### Quality checks (maintainers)
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+CI runs the same core checks in GitHub Actions (see `.github/workflows/ci.yml`). Desktop packaging is intentionally **not** part of CI (it is slower and Windows-specific).
+
+### Distribution options
+
+#### A) Hosted web app + Chrome/Edge install (PWA)
+
+Best when users can open an `https://` URL and you want the simplest update story.
+
+1. Build static assets: `npm run build`
+2. Deploy the `dist/` output to your static host
+3. Users install from Chrome/Edge using the browser install prompt
+
+End-user instructions: `docs/USER-INSTALL-GUIDE.md`  
+Release checklist: `docs/PUBLISHER-CHECKLIST.md`
+
+#### B) Offline Windows desktop installer (Electron)
+
+Best when you want a local-only install experience without asking users to use a public URL day-to-day.
+
+1. Build installer: `npm run desktop:dist`
+2. Grab the installer from `release/`
+3. Install on the target PC
+
+Details + troubleshooting: `docs/OFFLINE-WINDOWS-DESKTOP.md`
+
+Optional unpacked output for debugging:
+
+```bash
+npm run desktop:pack
+```
+
+### App icons (important)
+
+This project intentionally keeps **two** icon copies:
+
+- `build/icon.ico`: Windows/Electron packaging (`package.json` → `build.win.icon`)
+- `public/icon.ico`: browser tab + PWA manifest (`index.html`, `public/manifest.webmanifest`)
+
+If you change the artwork, update **both** files so web + desktop builds stay consistent.
 
 ## 🛠️ Technical Stack
 - **Framework**: React 19 (Vite)
@@ -49,6 +93,7 @@ If you are running this locally from the source code:
 - **Icons**: Lucide React
 - **Date Handling**: date-fns
 - **Animations**: motion (framer-motion)
+- **Desktop packaging (optional)**: Electron + electron-builder (Windows NSIS installer)
 
 ---
 *Created with Google AI Studio — Focused on simple, elegant personal finance.*

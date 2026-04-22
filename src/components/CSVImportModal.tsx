@@ -1,8 +1,9 @@
 import React from 'react';
 import Papa from 'papaparse';
 import { X, Upload, AlertCircle } from 'lucide-react';
-import { Category, NewTransactionInput, TransactionType } from '../types';
+import { Category, NewTransactionInput, type TransactionType } from '../types';
 import { format } from 'date-fns';
+import { deriveDebitCreditAmount, inferTypeFromTypeColumn, parseMoney } from '../lib/csvImport';
 
 interface CSVImportModalProps {
   categories: Category[];
@@ -14,6 +15,8 @@ type ColumnMapping = {
   date: string;
   payee: string;
   amount: string;
+  debit: string;
+  credit: string;
   type: string;
   category: string;
   memo: string;
@@ -26,6 +29,8 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
     date: '',
     payee: '',
     amount: '',
+    debit: '',
+    credit: '',
     type: '',
     category: '',
     memo: '',
@@ -34,12 +39,42 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
   const [errors, setErrors] = React.useState<string[]>([]);
   const dialogRef = React.useRef<HTMLDivElement>(null);
 
-  const parseAmount = React.useCallback((value: unknown) => {
-    const sanitized = String(value ?? '').replace(/[^\d.-]/g, '');
-    const parsed = Number.parseFloat(sanitized);
-    if (!Number.isFinite(parsed)) return null;
-    return parsed;
-  }, []);
+  const mappingFieldLabel = (field: keyof ColumnMapping) => {
+    switch (field) {
+      case 'date':
+        return 'Date';
+      case 'payee':
+        return 'Payee / Description';
+      case 'amount':
+        return 'Amount (signed or single column)';
+      case 'debit':
+        return 'Debit (outflow)';
+      case 'credit':
+        return 'Credit (inflow)';
+      case 'type':
+        return 'Type (optional)';
+      case 'category':
+        return 'Category (optional)';
+      case 'memo':
+        return 'Memo (optional)';
+      default:
+        return field;
+    }
+  };
+
+  const previewMoney = (row: Record<string, unknown>) => {
+    if (mapping.amount) {
+      return row[mapping.amount] ?? '';
+    }
+
+    const debit = mapping.debit ? row[mapping.debit] : '';
+    const credit = mapping.credit ? row[mapping.credit] : '';
+    if (String(debit ?? '').trim() || String(credit ?? '').trim()) {
+      return `${debit ? `D:${debit}` : ''}${debit && credit ? ' ' : ''}${credit ? `C:${credit}` : ''}`.trim();
+    }
+
+    return '';
+  };
 
   React.useEffect(() => {
     const activeElement = document.activeElement as HTMLElement | null;
@@ -72,12 +107,33 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
             setErrors([]);
 
             // Auto-detect mappings
-            const newMapping = { ...mapping };
+            const newMapping: ColumnMapping = {
+              date: '',
+              payee: '',
+              amount: '',
+              debit: '',
+              credit: '',
+              type: '',
+              category: '',
+              memo: '',
+            };
             results.meta.fields.forEach(header => {
               const lowerHeader = header.toLowerCase();
               if (lowerHeader.includes('date')) newMapping.date = header;
               if (lowerHeader.includes('payee') || lowerHeader.includes('description') || lowerHeader.includes('name')) newMapping.payee = header;
-              if (lowerHeader.includes('amount') || lowerHeader.includes('value')) newMapping.amount = header;
+              if (
+                lowerHeader.includes('amount') ||
+                lowerHeader.includes('value') ||
+                (lowerHeader.includes('transaction') && lowerHeader.includes('amount'))
+              ) {
+                newMapping.amount = header;
+              }
+              if (lowerHeader.includes('debit') || lowerHeader.includes('withdraw') || lowerHeader.includes('payment')) {
+                newMapping.debit = header;
+              }
+              if (lowerHeader.includes('credit') || lowerHeader.includes('deposit')) {
+                newMapping.credit = header;
+              }
               if (lowerHeader.includes('type')) newMapping.type = header;
               if (lowerHeader.includes('category')) newMapping.category = header;
               if (lowerHeader.includes('memo') || lowerHeader.includes('note')) newMapping.memo = header;
@@ -93,30 +149,54 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
     const importErrors: string[] = [];
     const processedTransactions = data.map((row, index) => {
       try {
-        const rawAmount = row[mapping.amount];
         const rawDate = row[mapping.date];
-        
-        // Basic validation
-        if (!rawAmount || !rawDate) {
-          throw new Error(`Row ${index + 1}: Missing required fields (Date/Amount)`);
+        if (!rawDate) {
+          throw new Error('Missing required field (Date)');
         }
 
-        const parsedAmount = parseAmount(rawAmount);
-        if (parsedAmount === null) {
-          throw new Error(`Row ${index + 1}: Invalid amount "${String(rawAmount)}"`);
+        const debitMapped = Boolean(mapping.debit);
+        const creditMapped = Boolean(mapping.credit);
+        const amountMapped = Boolean(mapping.amount);
+
+        let signedAmount: number | null = null;
+
+        if (debitMapped || creditMapped) {
+          const debitRaw = debitMapped ? row[mapping.debit] : '';
+          const creditRaw = creditMapped ? row[mapping.credit] : '';
+          const derived = deriveDebitCreditAmount({ debitRaw, creditRaw });
+          signedAmount = derived ? derived.signed : null;
         }
 
-        const amount = Math.abs(parsedAmount);
-        const typeHint = String(row[mapping.type] ?? '').toLowerCase();
-        const type: TransactionType =
-          typeHint.includes('income') || typeHint.includes('deposit') || parsedAmount > 0 ? 'income' : 'expense';
+        if (signedAmount === null && amountMapped) {
+          const rawAmount = row[mapping.amount];
+          if (rawAmount === null || rawAmount === undefined || String(rawAmount).trim() === '') {
+            signedAmount = null;
+          } else {
+            signedAmount = parseMoney(rawAmount);
+            if (signedAmount === null) {
+              throw new Error(`Invalid amount "${String(rawAmount)}"`);
+            }
+          }
+        }
+
+        if (signedAmount === null) {
+          throw new Error('Missing financial amount. Map Amount, or map Debit/Credit columns.');
+        }
+
+        const amount = Math.abs(signedAmount);
+        const type: TransactionType = mapping.type
+          ? inferTypeFromTypeColumn(row[mapping.type], signedAmount)
+          : inferTypeFromTypeColumn('', signedAmount);
         
         // Find category
-        const rowCategoryName = row[mapping.category];
-        const category = categories.find(c => c.name.toLowerCase() === String(rowCategoryName).toLowerCase()) || categories[0];
+        const rowCategoryName = mapping.category ? row[mapping.category] : '';
+        const category =
+          rowCategoryName === '' || rowCategoryName === null || rowCategoryName === undefined
+            ? categories[0]
+            : categories.find(c => c.name.toLowerCase() === String(rowCategoryName).toLowerCase()) || categories[0];
         const parsedDate = new Date(String(rawDate));
         if (Number.isNaN(parsedDate.getTime())) {
-          throw new Error(`Row ${index + 1}: Invalid date "${String(rawDate)}"`);
+          throw new Error(`Invalid date "${String(rawDate)}"`);
         }
 
         return {
@@ -125,10 +205,11 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
           amount,
           type,
           categoryId: category.id,
-          memo: String(row[mapping.memo] || ''),
+          memo: mapping.memo ? String(row[mapping.memo] || '') : '',
         };
       } catch (err) {
-        importErrors.push(err instanceof Error ? err.message : String(err));
+        const base = err instanceof Error ? err.message : String(err);
+        importErrors.push(`Row ${index + 1}: ${base}`);
         return null;
       }
     }).filter(Boolean);
@@ -176,7 +257,7 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
                   <div className="space-y-4">
                     {(Object.keys(mapping) as Array<keyof ColumnMapping>).map((field) => (
                       <div key={field} className="flex flex-col gap-1">
-                        <label className="text-[10px] caps italic opacity-70">{field}</label>
+                        <label className="text-[10px] caps italic opacity-70">{mappingFieldLabel(field)}</label>
                         <select 
                           className="w-full bg-white border-fine p-2 text-xs focus:outline-none focus:border-editorial-ink appearance-none"
                           value={mapping[field]}
@@ -200,7 +281,7 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
                         <p className="text-[10px] font-medium truncate">{row[mapping.payee] || 'No Payee Detected'}</p>
                         <div className="flex justify-between items-center italic text-[9px] text-editorial-muted font-serif">
                           <span>{row[mapping.date] || 'No Date'}</span>
-                          <span className="font-sans font-bold text-editorial-ink">{row[mapping.amount] || '0.00'}</span>
+                          <span className="font-sans font-bold text-editorial-ink">{String(previewMoney(row) || '—')}</span>
                         </div>
                       </div>
                     ))}
