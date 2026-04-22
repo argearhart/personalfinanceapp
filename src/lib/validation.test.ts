@@ -27,6 +27,7 @@ describe('normalizeImportedAppState', () => {
     expect(result.value.categories).toHaveLength(1);
     expect(result.value.transactions[0].categoryId).toBe('cat-1');
     expect(result.value.startingBalance).toBe(300);
+    expect(result.value.startingBalanceAsOf).toBe('');
   });
 
   it('returns default-safe state for malformed object shape', () => {

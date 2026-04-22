@@ -3,10 +3,14 @@ import { Pencil, Search, Trash2 } from 'lucide-react';
 import { Transaction, Category } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { format } from 'date-fns';
+import { compareYmdDateStrings } from '../lib/dates';
+import { signedAmount } from '../lib/finance';
 
 interface RegisterProps {
   transactions: Transaction[];
   categories: Category[];
+  /** Balance before the earliest transaction; running totals in the list include this. */
+  startingBalance: number;
   onAddTransaction: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   onImportCSV: () => void;
@@ -16,6 +20,7 @@ interface RegisterProps {
 export default function Register({ 
   transactions, 
   categories, 
+  startingBalance,
   onAddTransaction,
   onEditTransaction,
   onImportCSV,
@@ -28,15 +33,30 @@ export default function Register({
     [categories]
   );
 
-  const filteredTransactions = React.useMemo(() => {
+  const { sortedChronological, runningBalanceById } = React.useMemo(() => {
+    const byDateThenId = (a: Transaction, b: Transaction) => {
+      const c = compareYmdDateStrings(a.date, b.date);
+      return c !== 0 ? c : a.id.localeCompare(b.id);
+    };
+    const sorted = [...transactions].sort(byDateThenId);
+    let acc = startingBalance;
+    const runningBalanceById = new Map<string, number>();
+    for (const t of sorted) {
+      acc += signedAmount(t);
+      runningBalanceById.set(t.id, acc);
+    }
+    return { sortedChronological: sorted, runningBalanceById };
+  }, [transactions, startingBalance]);
+
+  const displayTransactions = React.useMemo(() => {
     const query = searchTerm.toLowerCase();
-    return transactions
-      .filter((transaction) =>
+    if (!query) return sortedChronological;
+    return sortedChronological.filter(
+      (transaction) =>
         transaction.payee.toLowerCase().includes(query) ||
         transaction.memo?.toLowerCase().includes(query)
-      )
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [searchTerm, transactions]);
+    );
+  }, [searchTerm, sortedChronological]);
 
   const escapeCsvCell = (value: unknown) => {
     const raw = String(value ?? '');
@@ -45,13 +65,14 @@ export default function Register({
   };
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Payee', 'Category', 'Type', 'Amount', 'Reconciled', 'Memo'];
-    const rows = filteredTransactions.map(t => [
+    const headers = ['Date', 'Payee', 'Category', 'Type', 'Amount', 'Balance', 'Reconciled', 'Memo'];
+    const rows = displayTransactions.map(t => [
       t.date,
       t.payee,
       categoryById.get(t.categoryId)?.name || '',
       t.type,
       t.amount,
+      runningBalanceById.get(t.id) ?? '',
       t.isReconciled ? 'Yes' : 'No',
       t.memo || ''
     ]);
@@ -74,7 +95,7 @@ export default function Register({
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div>
           <h2 className="text-xl caps mb-2">Register / Transaction Log</h2>
-          <p className="text-sm text-editorial-muted italic font-serif">Comprehensive financial history in descending chronological order.</p>
+          <p className="text-sm text-editorial-muted italic font-serif">Oldest to newest, with running balance after each line (like a bank passbook). Opening balance in the header is included before the first line.</p>
         </div>
         <div className="flex gap-4">
           <button 
@@ -125,6 +146,7 @@ export default function Register({
               <col />
               <col className="w-[6.5rem] sm:w-[7.5rem]" />
               <col className="w-[6.5rem] sm:w-[7rem]" />
+              <col className="w-24 sm:w-28" />
               <col className="w-28" />
             </colgroup>
             <thead className="caps bg-neutral-100 border-b border-neutral-300 text-sm">
@@ -133,19 +155,21 @@ export default function Register({
                 <th scope="col" className="px-2 py-2.5 text-left">Description / Payee</th>
                 <th scope="col" className="px-2 py-2.5 text-right">Category</th>
                 <th scope="col" className="px-2 py-2.5 text-right">Amount</th>
+                <th scope="col" className="px-2 py-2.5 text-right">Balance</th>
                 <th scope="col" className="px-2 py-2.5 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-editorial-border">
-              {filteredTransactions.length === 0 ? (
+              {displayTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-editorial-muted italic font-serif">
+                  <td colSpan={6} className="px-6 py-12 text-center text-editorial-muted italic font-serif">
                     No entries found in this journal index.
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map((transaction, idx) => {
+                displayTransactions.map((transaction, idx) => {
                   const category = categoryById.get(transaction.categoryId);
+                  const runBal = runningBalanceById.get(transaction.id);
                   return (
                     <tr
                       key={transaction.id}
@@ -174,6 +198,9 @@ export default function Register({
                         )}
                       >
                         {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </td>
+                      <td className="px-2 py-2.5 text-right text-sm font-medium tabular-nums text-editorial-ink align-top whitespace-nowrap" title="Running balance after this line (includes opening balance)">
+                        {runBal !== undefined ? formatCurrency(runBal) : '—'}
                       </td>
                       <td className="px-1 py-2 align-top">
                         <div className="flex items-start justify-center gap-1 sm:gap-1.5">
@@ -211,13 +238,14 @@ export default function Register({
         </div>
 
         <div className="md:hidden divide-y divide-editorial-border">
-          {filteredTransactions.length === 0 ? (
+          {displayTransactions.length === 0 ? (
             <div className="px-6 py-12 text-center text-editorial-muted italic font-serif">
               No entries found in this journal index.
             </div>
           ) : (
-            filteredTransactions.map((transaction, idx) => {
+            displayTransactions.map((transaction, idx) => {
               const category = categoryById.get(transaction.categoryId);
+              const runBal = runningBalanceById.get(transaction.id);
               return (
                 <article key={transaction.id} className={cn("p-4 space-y-2", idx % 2 === 1 ? "bg-editorial-zebra" : "bg-white")}>
                   <div className="flex items-start justify-between gap-2">
@@ -251,6 +279,9 @@ export default function Register({
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </span>
                   </div>
+                  <p className="text-sm text-right tabular-nums text-editorial-ink" aria-label={`Running balance after this line ${runBal !== undefined ? formatCurrency(runBal) : ''}`}>
+                    Balance: {runBal !== undefined ? formatCurrency(runBal) : '—'}
+                  </p>
                 </article>
               );
             })

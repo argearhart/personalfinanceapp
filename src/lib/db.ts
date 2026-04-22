@@ -6,7 +6,7 @@ export class LedgerDatabase extends Dexie {
   categories!: Table<Category>;
   budgets!: Table<Budget>;
   reconciliationHistory!: Table<ReconciliationRecord>;
-  metadata!: Table<{ key: string; value: number }>;
+  metadata!: Table<{ key: string; value: string | number }>;
 
   constructor() {
     super('LedgerDatabase');
@@ -39,6 +39,7 @@ export async function saveToDatabase(state: AppState) {
     await db.reconciliationHistory.bulkAdd(state.reconciliationHistory);
     
     await db.metadata.put({ key: 'startingBalance', value: state.startingBalance });
+    await db.metadata.put({ key: 'startingBalanceAsOf', value: state.startingBalanceAsOf });
   });
 }
 
@@ -49,15 +50,21 @@ export async function loadFromDatabase(): Promise<AppState | null> {
     const budgets = await db.budgets.toArray();
     const reconciliationHistory = await db.reconciliationHistory.toArray();
     const startingBalanceRecord = await db.metadata.get('startingBalance');
-    
+    const startingBalanceAsOfRecord = await db.metadata.get('startingBalanceAsOf');
+
     if (categories.length === 0 && transactions.length === 0) return null;
+
+    const asOfValue = startingBalanceAsOfRecord?.value;
+    const startingBalanceAsOf =
+      typeof asOfValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asOfValue) ? asOfValue : '';
 
     return {
       transactions: transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       categories,
       budgets,
       reconciliationHistory: reconciliationHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-      startingBalance: startingBalanceRecord?.value || 0
+      startingBalance: typeof startingBalanceRecord?.value === 'number' ? startingBalanceRecord.value : 0,
+      startingBalanceAsOf,
     };
   } catch (error) {
     console.error('Failed to load from IndexedDB:', error);

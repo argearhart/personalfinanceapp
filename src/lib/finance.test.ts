@@ -52,4 +52,23 @@ describe('calculateReconciliationBalance', () => {
     expect(result.selectedUnclearedTotal).toBe(0);
     expect(result.calculatedLedgerBalance).toBe(300);
   });
+
+  it('does not count selected uncleared items dated after the statement', () => {
+    const transactions: Transaction[] = [
+      buildTransaction({
+        id: 'after-statement',
+        type: 'expense',
+        amount: 10,
+        isReconciled: false,
+        date: '2026-04-15',
+      }),
+    ];
+    const result = calculateReconciliationBalance({
+      transactions,
+      statementDate: '2026-03-31',
+      selectedIds: ['after-statement'],
+      startingBalance: 0,
+    });
+    expect(result.selectedUnclearedTotal).toBe(0);
+  });
 });

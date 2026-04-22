@@ -10,6 +10,7 @@ import {
   Download,
   Upload
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
 interface NavItem {
@@ -24,14 +25,28 @@ interface LayoutProps {
   setActiveTab: (id: string) => void;
   balance: number;
   startingBalance: number;
+  startingBalanceAsOf: string;
   onUpdateStartingBalance: (amount: number) => void;
+  onUpdateStartingBalanceAsOf: (ymd: string) => void;
   onImportData: (state: unknown) => void;
   fullState: unknown;
 }
 
-export default function Layout({ children, activeTab, setActiveTab, balance, startingBalance, onUpdateStartingBalance, onImportData, fullState }: LayoutProps) {
-  const [isEditingBalance, setIsEditingBalance] = React.useState(false);
-  const [editBalanceValue, setEditBalanceValue] = React.useState((startingBalance ?? 0).toString());
+export default function Layout({
+  children,
+  activeTab,
+  setActiveTab,
+  balance,
+  startingBalance,
+  startingBalanceAsOf,
+  onUpdateStartingBalance,
+  onUpdateStartingBalanceAsOf,
+  onImportData,
+  fullState,
+}: LayoutProps) {
+  const [isEditingOpening, setIsEditingOpening] = React.useState(false);
+  const [editOpeningValue, setEditOpeningValue] = React.useState((startingBalance ?? 0).toString());
+  const [editAsOfValue, setEditAsOfValue] = React.useState(startingBalanceAsOf);
 
   const handleExport = () => {
     const dataStr = JSON.stringify(fullState, null, 2);
@@ -64,8 +79,9 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
   };
 
   React.useEffect(() => {
-    setEditBalanceValue((startingBalance ?? 0).toString());
-  }, [startingBalance]);
+    setEditOpeningValue((startingBalance ?? 0).toString());
+    setEditAsOfValue(startingBalanceAsOf);
+  }, [startingBalance, startingBalanceAsOf]);
 
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -76,9 +92,14 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
     { id: 'categories', label: 'Categories', icon: Settings },
   ];
 
-  const handleUpdateBalance = () => {
-    onUpdateStartingBalance(parseFloat(editBalanceValue) || 0);
-    setIsEditingBalance(false);
+  const commitOpening = () => {
+    onUpdateStartingBalance(parseFloat(editOpeningValue) || 0);
+    if (editAsOfValue && /^\d{4}-\d{2}-\d{2}$/.test(editAsOfValue)) {
+      onUpdateStartingBalanceAsOf(editAsOfValue);
+    } else {
+      onUpdateStartingBalanceAsOf('');
+    }
+    setIsEditingOpening(false);
   };
 
   return (
@@ -90,34 +111,79 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
           <h1 className="text-4xl md:text-5xl font-serif">Ledger & Balance</h1>
         </div>
         
-        <div className="flex gap-8 md:gap-12 mt-4 md:mt-0">
-          <div className="text-right">
+        <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 md:gap-12 mt-4 md:mt-0 sm:items-end sm:text-right">
+          <div className="min-w-0 w-full sm:w-auto">
+            <p className="caps mb-1">Current balance</p>
+            <p className="text-2xl md:text-3xl font-light tabular-nums">
+              ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-2xs text-editorial-muted font-serif mt-1 max-w-[20rem] sm:ml-auto">
+              This includes the opening balance and every line in the register. Edit opening balance below if reconciliation does not match the bank.
+            </p>
+          </div>
+          <div className="min-w-0 w-full sm:w-auto sm:max-w-[20rem] border-t sm:border-t-0 border-editorial-border pt-3 sm:pt-0 sm:border-l sm:pl-8 sm:text-right">
             <div className="flex items-center justify-end gap-2 mb-1">
-              <span className="caps">Current Balance</span>
-              <button 
-                onClick={() => setIsEditingBalance(true)}
+              <span className="caps">Opening balance</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditOpeningValue((startingBalance ?? 0).toString());
+                  setEditAsOfValue(startingBalanceAsOf);
+                  setIsEditingOpening(true);
+                }}
                 className="text-editorial-muted hover:text-editorial-ink transition-colors"
-                title="Adjust Starting Balance"
+                title="Edit opening balance and as-of date"
               >
                 <Edit2 size={10} />
               </button>
             </div>
-            {isEditingBalance ? (
-              <div className="flex items-center gap-2">
-                <input 
-                  type="number"
-                  autoFocus
-                  className="w-24 bg-white border-fine p-1 text-right text-sm focus:outline-none focus:border-editorial-ink"
-                  value={editBalanceValue}
-                  onChange={(e) => setEditBalanceValue(e.target.value)}
-                  onBlur={handleUpdateBalance}
-                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateBalance()}
-                />
+            {isEditingOpening ? (
+              <div className="flex flex-col sm:items-end gap-2 w-full">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <label className="sr-only" htmlFor="opening-amount">Opening amount</label>
+                  <input
+                    id="opening-amount"
+                    type="number"
+                    autoFocus
+                    className="w-32 bg-white border-fine p-1.5 text-right text-sm focus:outline-none focus:border-editorial-ink"
+                    value={editOpeningValue}
+                    onChange={(e) => setEditOpeningValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && commitOpening()}
+                  />
+                  <label className="text-2xs caps text-editorial-muted" htmlFor="opening-asof">As of</label>
+                  <input
+                    id="opening-asof"
+                    type="date"
+                    className="bg-white border-fine p-1.5 text-xs focus:outline-none focus:border-editorial-ink"
+                    value={editAsOfValue || ''}
+                    onChange={(e) => setEditAsOfValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && commitOpening()}
+                  />
+                  <button
+                    type="button"
+                    className="text-xs caps underline underline-offset-2"
+                    onClick={commitOpening}
+                  >
+                    Save
+                  </button>
+                </div>
+                <p className="text-2xs text-editorial-muted font-serif sm:text-right">
+                  Use the end-of-day balance for this date, before the first register row you are tracking. Leave &quot;As of&quot; empty if you prefer; reconciliation still uses the amount.
+                </p>
               </div>
             ) : (
-              <span className="text-2xl md:text-3xl font-light">
-                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
+              <div>
+                <p className="text-lg font-light tabular-nums">
+                  ${(startingBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+                {startingBalanceAsOf ? (
+                  <p className="text-xs text-editorial-muted font-serif mt-0.5">
+                    As of {format(new Date(`${startingBalanceAsOf}T12:00:00`), 'MMMM d, yyyy')}
+                  </p>
+                ) : (
+                  <p className="text-2xs text-editorial-muted font-serif mt-0.5">Set as-of date when editing to remember which statement it came from.</p>
+                )}
+              </div>
             )}
           </div>
           <div className="hidden md:block text-right">

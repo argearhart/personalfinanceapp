@@ -35,8 +35,9 @@ export default function App() {
     addCategory,
     setBudget,
     setStartingBalance,
+    setStartingBalanceAsOf,
     importData,
-    totalBalance 
+    totalBalance,
   } = useFinance();
 
   const handleCSVImport = (transactions: NewTransactionInput[]) => {
@@ -66,6 +67,7 @@ export default function App() {
           <Register 
             transactions={state.transactions} 
             categories={state.categories}
+            startingBalance={state.startingBalance}
             onAddTransaction={() => setTxModal({ open: true, mode: 'create' })}
             onEditTransaction={(transaction) => setTxModal({ open: true, mode: 'edit', transaction })}
             onImportCSV={() => setIsCSVModalOpen(true)}
@@ -78,6 +80,7 @@ export default function App() {
             transactions={state.transactions} 
             history={state.reconciliationHistory}
             startingBalance={state.startingBalance}
+            startingBalanceAsOf={state.startingBalanceAsOf}
             onReconcile={reconcileTransactions}
           />
         );
@@ -115,7 +118,9 @@ export default function App() {
       setActiveTab={setActiveTab} 
       balance={totalBalance}
       startingBalance={state.startingBalance}
+      startingBalanceAsOf={state.startingBalanceAsOf}
       onUpdateStartingBalance={setStartingBalance}
+      onUpdateStartingBalanceAsOf={setStartingBalanceAsOf}
       onImportData={importData}
       fullState={state}
     >

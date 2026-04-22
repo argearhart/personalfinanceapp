@@ -7,6 +7,7 @@ const INITIAL_STATE: AppState = {
   budgets: [],
   reconciliationHistory: [],
   startingBalance: 0,
+  startingBalanceAsOf: '',
 };
 
 export function loadState(): AppState {

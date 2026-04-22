@@ -95,9 +95,16 @@ export function useFinance() {
   }, []);
 
   const setStartingBalance = useCallback((amount: number) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       startingBalance: amount,
+    }));
+  }, []);
+
+  const setStartingBalanceAsOf = useCallback((ymd: string) => {
+    setState((prev) => ({
+      ...prev,
+      startingBalanceAsOf: ymd,
     }));
   }, []);
 
@@ -122,6 +129,7 @@ export function useFinance() {
     setBudget,
     reconcileTransactions,
     setStartingBalance,
+    setStartingBalanceAsOf,
     importData,
     totalBalance,
   };

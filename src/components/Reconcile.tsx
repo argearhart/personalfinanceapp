@@ -3,22 +3,51 @@ import { CheckCircle2, ChevronRight, Landmark, Check, AlertCircle, BookCheck } f
 import { Transaction, ReconciliationRecord } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { calculateReconciliationBalance } from '../lib/finance';
+import { isYmdOnOrBefore, toComparableYmd } from '../lib/dates';
 import { format } from 'date-fns';
 
 interface ReconcileProps {
   transactions: Transaction[];
   history: ReconciliationRecord[];
   startingBalance: number;
+  startingBalanceAsOf: string;
   onReconcile: (record: ReconciliationRecord) => void;
 }
 
-export default function Reconcile({ transactions, history, startingBalance, onReconcile }: ReconcileProps) {
+export default function Reconcile({ transactions, history, startingBalance, startingBalanceAsOf, onReconcile }: ReconcileProps) {
   const [step, setStep] = React.useState(1);
   const [statementBalance, setStatementBalance] = React.useState('');
   const [statementDate, setStatementDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  const unclearedTransactions = transactions.filter(t => !t.isReconciled);
+  const unclearedBeforeStatement = React.useMemo(
+    () =>
+      transactions.filter(
+        (t) => !t.isReconciled && isYmdOnOrBefore(t.date, statementDate)
+      ),
+    [transactions, statementDate]
+  );
+
+  const futureUnclearedCount = React.useMemo(
+    () =>
+      transactions.filter(
+        (t) => !t.isReconciled && toComparableYmd(t.date) > toComparableYmd(statementDate)
+      ).length,
+    [transactions, statementDate]
+  );
+
+  const unclearedTransactions = unclearedBeforeStatement;
+
+  React.useEffect(() => {
+    setSelectedIds((prev) => {
+      const allowed = new Set(
+        transactions
+          .filter((t) => !t.isReconciled && isYmdOnOrBefore(t.date, statementDate))
+          .map((t) => t.id)
+      );
+      return prev.filter((id) => allowed.has(id));
+    });
+  }, [statementDate, transactions]);
   
   const { selectedUnclearedTotal, reconciledToDateTotal, calculatedLedgerBalance } = calculateReconciliationBalance({
     transactions,
@@ -38,6 +67,11 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
 
   const handleFinish = () => {
     if (Math.abs(difference) < 0.01) {
+      const effectiveIds = selectedIds.filter((id) =>
+        transactions.some(
+          (t) => t.id === id && !t.isReconciled && isYmdOnOrBefore(t.date, statementDate)
+        )
+      );
       onReconcile({
         id: crypto.randomUUID(),
         date: new Date().toISOString(),
@@ -45,7 +79,7 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
         statementBalance: targetBalance,
         clearedBalance: calculatedLedgerBalance,
         difference: 0,
-        transactionIds: selectedIds
+        transactionIds: effectiveIds
       });
       setStep(3); // Success state
     }
@@ -247,8 +281,15 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
                   <span className="text-lg font-light tracking-tight">{formatCurrency(targetBalance)}</span>
                 </div>
                 <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
-                  <span className="text-xs italic font-serif">Opening Balance</span>
-                  <span className="text-lg font-light tracking-tight">{formatCurrency(startingBalance)}</span>
+                  <div className="min-w-0 pr-2">
+                    <span className="text-xs italic font-serif">Opening balance</span>
+                    {startingBalanceAsOf && (
+                      <p className="text-2xs text-editorial-muted font-serif mt-0.5">
+                        as of {format(new Date(`${startingBalanceAsOf}T12:00:00`), 'MMM d, yyyy')}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-lg font-light tracking-tight tabular-nums shrink-0">{formatCurrency(startingBalance)}</span>
                 </div>
                 <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
                   <span className="text-xs italic font-serif">Previously Reconciled (through date)</span>
@@ -295,9 +336,19 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
               </div>
             </div>
             
-            <div className="p-4 border-fine italic text-sm leading-relaxed text-editorial-muted font-serif bg-white">
-              <AlertCircle size={14} className="mb-2 text-editorial-ink" />
-              Statement target is compared to opening balance + previously reconciled transactions through the statement date + newly selected transactions.
+            <div className="p-4 border-fine text-sm leading-relaxed text-editorial-muted font-serif bg-white space-y-2">
+              <p className="flex gap-2">
+                <AlertCircle size={14} className="mt-0.5 shrink-0 text-editorial-ink" />
+                <span>
+                  <span className="not-italic">Expected ledger balance = opening balance (the amount as of the date you set in the header) + the sum of every reconciled line through the statement date + the lines you select in this list.</span>{' '}
+                  Only items dated on or before the statement are listed here, so the running balance in the register (after the last line through that date) should match when every line in range is chosen.
+                </span>
+              </p>
+              {futureUnclearedCount > 0 && (
+                <p className="pl-6 text-2xs not-italic border-t border-dashed border-editorial-border pt-2">
+                  {futureUnclearedCount} unreconciled line{futureUnclearedCount === 1 ? '' : 's'} dated after this statement—reconcile a later period when you get that statement, or change the line dates if the bank’s posting date is wrong.
+                </p>
+              )}
             </div>
           </aside>
         </div>

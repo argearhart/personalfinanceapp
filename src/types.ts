@@ -33,7 +33,10 @@ export interface AppState {
   categories: Category[];
   budgets: Budget[];
   reconciliationHistory: ReconciliationRecord[];
+  /** Book balance before any transaction in the register (same sign as the bank: assets positive). */
   startingBalance: number;
+  /** Local calendar day that `startingBalance` is true for (YYYY-MM-dd). For display and reconciliation context only. */
+  startingBalanceAsOf: string;
 }
 
 export interface ReconciliationRecord {

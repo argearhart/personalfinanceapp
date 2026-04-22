@@ -139,6 +139,9 @@ export function normalizeImportedAppState(input: unknown): ValidationResult<AppS
     : [];
 
   const startingBalance = asNumber(input.startingBalance) ?? 0;
+  const asOfIn = (input as Record<string, unknown>).startingBalanceAsOf;
+  const startingBalanceAsOf =
+    typeof asOfIn === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asOfIn.trim()) ? asOfIn.trim() : '';
 
   return {
     ok: true,
@@ -148,6 +151,7 @@ export function normalizeImportedAppState(input: unknown): ValidationResult<AppS
       budgets,
       reconciliationHistory,
       startingBalance,
+      startingBalanceAsOf,
     },
   };
 }
