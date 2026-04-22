@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useFinance } from './hooks/useFinance';
-import { NewTransactionInput } from './types';
+import { NewTransactionInput, Transaction } from './types';
 import Layout from './components/Layout';
 
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -17,9 +17,14 @@ const CategoryManager = React.lazy(() => import('./components/CategoryManager'))
 const TransactionModal = React.lazy(() => import('./components/TransactionModal'));
 const CSVImportModal = React.lazy(() => import('./components/CSVImportModal'));
 
+type TransactionModalState =
+  | { open: false }
+  | { open: true; mode: 'create' }
+  | { open: true; mode: 'edit'; transaction: Transaction };
+
 export default function App() {
   const [activeTab, setActiveTab] = React.useState('dashboard');
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [txModal, setTxModal] = React.useState<TransactionModalState>({ open: false });
   const [isCSVModalOpen, setIsCSVModalOpen] = React.useState(false);
   const { 
     state, 
@@ -53,7 +58,7 @@ export default function App() {
             transactions={state.transactions} 
             categories={state.categories} 
             setActiveTab={setActiveTab}
-            onAddTransaction={() => setIsModalOpen(true)}
+            onAddTransaction={() => setTxModal({ open: true, mode: 'create' })}
           />
         );
       case 'register':
@@ -61,10 +66,10 @@ export default function App() {
           <Register 
             transactions={state.transactions} 
             categories={state.categories}
-            onAddTransaction={() => setIsModalOpen(true)}
+            onAddTransaction={() => setTxModal({ open: true, mode: 'create' })}
+            onEditTransaction={(transaction) => setTxModal({ open: true, mode: 'edit', transaction })}
             onImportCSV={() => setIsCSVModalOpen(true)}
             onDeleteTransaction={deleteTransaction}
-            onUpdateTransaction={updateTransaction}
           />
         );
       case 'reconcile':
@@ -119,11 +124,13 @@ export default function App() {
       </React.Suspense>
       
       <React.Suspense fallback={null}>
-        {isModalOpen && (
+        {txModal.open && (
           <TransactionModal 
-            categories={state.categories} 
-            onClose={() => setIsModalOpen(false)}
-            onSubmit={addTransaction}
+            categories={state.categories}
+            initialTransaction={txModal.mode === 'edit' ? txModal.transaction : null}
+            onClose={() => setTxModal({ open: false })}
+            onCreate={addTransaction}
+            onUpdate={(id, data) => updateTransaction(id, data)}
           />
         )}
 

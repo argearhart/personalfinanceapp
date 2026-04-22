@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Trash2 } from 'lucide-react';
+import { Pencil, Search, Trash2 } from 'lucide-react';
 import { Transaction, Category } from '../types';
 import { formatCurrency, cn } from '../lib/utils';
 import { format } from 'date-fns';
@@ -8,18 +8,18 @@ interface RegisterProps {
   transactions: Transaction[];
   categories: Category[];
   onAddTransaction: () => void;
+  onEditTransaction: (transaction: Transaction) => void;
   onImportCSV: () => void;
   onDeleteTransaction: (id: string) => void;
-  onUpdateTransaction: (id: string, updates: Partial<Transaction>) => void;
 }
 
 export default function Register({ 
   transactions, 
   categories, 
-  onAddTransaction, 
+  onAddTransaction,
+  onEditTransaction,
   onImportCSV,
   onDeleteTransaction,
-  onUpdateTransaction: _onUpdateTransaction
  }: RegisterProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
 
@@ -169,15 +169,24 @@ export default function Register({
                         {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </td>
                       <td className="px-3 py-3">
-                        <div className="flex items-center justify-center gap-3">
+                        <div className="flex items-center justify-center gap-2">
                           <span
                             aria-label={transaction.isReconciled ? 'Reconciled transaction' : 'Unreconciled transaction'}
                             className={cn(
-                              "w-3 h-3 rounded-full",
+                              "w-3 h-3 rounded-full shrink-0",
                               transaction.isReconciled ? "bg-editorial-accent-green" : "border border-neutral-400"
                             )}
                           />
                           <button
+                            type="button"
+                            aria-label={`Edit transaction for ${transaction.payee}`}
+                            onClick={() => onEditTransaction(transaction)}
+                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-editorial-ink hover:bg-editorial-ink/10 transition-all"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
                             aria-label={`Delete transaction for ${transaction.payee}`}
                             onClick={() => onDeleteTransaction(transaction.id)}
                             className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
@@ -209,13 +218,24 @@ export default function Register({
                       <p className="font-semibold">{transaction.payee}</p>
                       <p className="text-[11px] text-editorial-muted uppercase">{format(new Date(transaction.date), 'MMM dd, yyyy')}</p>
                     </div>
-                    <button
-                      aria-label={`Delete transaction for ${transaction.payee}`}
-                      onClick={() => onDeleteTransaction(transaction.id)}
-                      className="p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        aria-label={`Edit transaction for ${transaction.payee}`}
+                        onClick={() => onEditTransaction(transaction)}
+                        className="p-1 text-editorial-ink hover:bg-editorial-ink/10 transition-all"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete transaction for ${transaction.payee}`}
+                        onClick={() => onDeleteTransaction(transaction.id)}
+                        className="p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                   {transaction.memo && <p className="text-[12px] italic font-serif text-editorial-muted">{transaction.memo}</p>}
                   <div className="flex items-center justify-between text-[12px]">

@@ -195,8 +195,14 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
           throw new Error('Missing required field (Date)');
         }
 
+        const parsedDate = new Date(dateStr);
+        if (Number.isNaN(parsedDate.getTime())) {
+          throw new Error(`Invalid date "${dateStr}"`);
+        }
+
+        // Bank CSVs often include dated rows with $0 / empty debit & credit (padding, subtotals).
         if (signedAmount === null) {
-          throw new Error('Missing financial amount. Map Amount, or map Debit/Credit columns.');
+          return null;
         }
 
         const amount = Math.abs(signedAmount);
@@ -210,10 +216,6 @@ export default function CSVImportModal({ categories, onClose, onImport }: CSVImp
           rowCategoryName === '' || rowCategoryName === null || rowCategoryName === undefined
             ? categories[0]
             : categories.find(c => c.name.toLowerCase() === String(rowCategoryName).toLowerCase()) || categories[0];
-        const parsedDate = new Date(dateStr);
-        if (Number.isNaN(parsedDate.getTime())) {
-          throw new Error(`Invalid date "${dateStr}"`);
-        }
 
         return {
           date: format(parsedDate, 'yyyy-MM-dd'),

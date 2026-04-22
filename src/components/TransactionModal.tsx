@@ -1,22 +1,51 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { Category, NewTransactionInput, TransactionType } from '../types';
+import { Category, NewTransactionInput, Transaction, TransactionType } from '../types';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 
 interface TransactionModalProps {
   categories: Category[];
+  /** When set, the form edits this transaction instead of creating a new one. */
+  initialTransaction?: Transaction | null;
   onClose: () => void;
-  onSubmit: (data: NewTransactionInput) => void;
+  onCreate: (data: NewTransactionInput) => void;
+  onUpdate: (id: string, data: NewTransactionInput) => void;
 }
 
-export default function TransactionModal({ categories, onClose, onSubmit }: TransactionModalProps) {
+export default function TransactionModal({
+  categories,
+  initialTransaction = null,
+  onClose,
+  onCreate,
+  onUpdate,
+}: TransactionModalProps) {
   const [type, setType] = React.useState<TransactionType>('expense');
   const [amount, setAmount] = React.useState('');
   const [payee, setPayee] = React.useState('');
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
   const [categoryId, setCategoryId] = React.useState('');
   const [memo, setMemo] = React.useState('');
+
+  const isEditing = Boolean(initialTransaction);
+
+  React.useEffect(() => {
+    if (initialTransaction) {
+      setType(initialTransaction.type);
+      setAmount(String(initialTransaction.amount));
+      setPayee(initialTransaction.payee);
+      setDate(initialTransaction.date);
+      setCategoryId(initialTransaction.categoryId);
+      setMemo(initialTransaction.memo ?? '');
+    } else {
+      setType('expense');
+      setAmount('');
+      setPayee('');
+      setDate(format(new Date(), 'yyyy-MM-dd'));
+      setCategoryId('');
+      setMemo('');
+    }
+  }, [initialTransaction]);
 
   const filteredCategories = categories.filter(c => c.type === type);
   const dialogRef = React.useRef<HTMLDivElement>(null);
@@ -41,14 +70,19 @@ export default function TransactionModal({ categories, onClose, onSubmit }: Tran
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !payee || !categoryId) return;
-    onSubmit({
+    const data: NewTransactionInput = {
       date,
       payee,
       amount: parseFloat(amount),
       type,
       categoryId,
       memo,
-    });
+    };
+    if (initialTransaction) {
+      onUpdate(initialTransaction.id, data);
+    } else {
+      onCreate(data);
+    }
     onClose();
   };
 
@@ -63,7 +97,9 @@ export default function TransactionModal({ categories, onClose, onSubmit }: Tran
         className="bg-editorial-bg w-full max-w-lg overflow-hidden border-fine shadow-2xl animate-in zoom-in-95 duration-300"
       >
         <div className="px-8 py-6 border-b border-editorial-border flex items-center justify-between">
-          <h2 id="transaction-dialog-title" className="text-xl italic font-serif">Checkbook Entry</h2>
+          <h2 id="transaction-dialog-title" className="text-xl italic font-serif">
+            {isEditing ? 'Edit entry' : 'Checkbook Entry'}
+          </h2>
           <button aria-label="Close transaction entry dialog" onClick={onClose} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-editorial-muted">
             <X size={18} />
           </button>
@@ -164,7 +200,7 @@ export default function TransactionModal({ categories, onClose, onSubmit }: Tran
             type="submit"
             className="w-full btn-editorial-primary !py-4"
           >
-            Enter record
+            {isEditing ? 'Save changes' : 'Enter record'}
           </button>
         </form>
       </div>
