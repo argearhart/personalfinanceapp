@@ -76,9 +76,9 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-500">
-      <header className="border-b border-editorial-border pb-4">
-        <h2 className="text-xl caps mb-2">Reconciliation Workspace</h2>
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
+      <header className="border-b border-editorial-border pb-3">
+        <h2 className="text-xl caps mb-1">Reconciliation Workspace</h2>
         <p className="text-sm text-editorial-muted italic font-serif">Aligning internal journal entries with external bank records.</p>
       </header>
 
@@ -123,22 +123,28 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          <div className="lg:col-span-8 space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[1fr_min(19rem,100%)] lg:gap-6 xl:gap-8 items-start">
+          <div className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xl italic font-serif">Verification Queue</h3>
-              <span className="caps text-editorial-muted">{selectedIds.length} of {unclearedTransactions.length} Selected</span>
+              <span className="caps text-editorial-muted shrink-0">{selectedIds.length} of {unclearedTransactions.length} Selected</span>
             </div>
             
-            <div className="bg-white border-fine overflow-hidden">
-              <div className="hidden md:block max-h-[500px] overflow-y-auto">
-                <table className="w-full border-collapse">
-                  <thead className="sticky top-0 caps bg-neutral-100 border-b border-editorial-border text-sm z-10">
+            <div className="bg-white border-fine overflow-hidden min-w-0">
+              <div className="hidden md:block max-h-[min(32rem,calc(100dvh-14rem))] overflow-y-auto overflow-x-hidden">
+                <table className="w-full min-w-0 table-fixed border-collapse">
+                  <colgroup>
+                    <col className="w-12" />
+                    <col className="w-[5.5rem]" />
+                    <col />
+                    <col className="w-[7.5rem]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-10 border-b border-editorial-border bg-neutral-100 text-left text-sm font-bold uppercase tracking-widest text-editorial-muted">
                     <tr>
-                      <th scope="col" className="w-12 px-3 py-3 text-center">Pick</th>
-                      <th scope="col" className="px-3 py-3 text-left">Date</th>
-                      <th scope="col" className="px-3 py-3 text-left">Payee / Description</th>
-                      <th scope="col" className="px-3 py-3 text-right">Amount</th>
+                      <th scope="col" className="px-2 py-2.5 text-center">Pick</th>
+                      <th scope="col" className="px-2 py-2.5">Date</th>
+                      <th scope="col" className="px-2 py-2.5">Payee / Description</th>
+                      <th scope="col" className="px-2 py-2.5 text-right">Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-editorial-border">
@@ -158,24 +164,28 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
                           )}
                           onClick={() => toggleTransaction(transaction.id)}
                         >
-                          <td className="px-3 py-3 text-center">
+                          <td className="px-2 py-2.5 text-center align-middle">
                             <span
                               aria-hidden="true"
                               className={cn(
-                                "inline-flex w-4 h-4 border items-center justify-center transition-all",
+                                "inline-flex h-4 w-4 border items-center justify-center transition-all",
                                 selectedIds.includes(transaction.id) ? "bg-editorial-ink border-editorial-ink" : "border-neutral-300 bg-white"
                               )}
                             >
                               {selectedIds.includes(transaction.id) && <Check size={10} className="text-white" />}
                             </span>
                           </td>
-                          <td className="px-3 py-3 text-xs font-medium uppercase whitespace-nowrap">
+                          <td className="px-2 py-2.5 align-top text-xs font-medium uppercase text-editorial-ink">
                             {format(new Date(transaction.date), 'MMM dd')}
                           </td>
-                          <td className="px-3 py-3 font-medium truncate pr-4">{transaction.payee}</td>
+                          <td className="min-w-0 max-w-0 px-2 py-2.5 align-top">
+                            <p className="font-medium leading-snug break-words" title={transaction.payee}>
+                              {transaction.payee}
+                            </p>
+                          </td>
                           <td
                             className={cn(
-                              "px-3 py-3 text-right font-medium whitespace-nowrap",
+                              "px-2 py-2.5 text-right text-sm font-medium tabular-nums align-top whitespace-nowrap",
                               transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
                             )}
                           >
@@ -188,7 +198,7 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
                 </table>
               </div>
 
-              <div className="md:hidden max-h-[500px] overflow-y-auto divide-y divide-editorial-border">
+              <div className="md:hidden max-h-[min(32rem,calc(100dvh-14rem))] overflow-y-auto divide-y divide-editorial-border">
                 {unclearedTransactions.length === 0 ? (
                   <div className="p-12 text-center text-editorial-muted italic font-serif">
                     All transactions have been cleared!
@@ -227,11 +237,11 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
             </div>
           </div>
 
-          <aside className="lg:col-span-4 space-y-8">
-            <div className="card-editorial bg-editorial-zebra border-dashed space-y-6">
-              <h3 className="caps mb-6">Reconciliation Ledger</h3>
+          <aside className="w-full min-w-0 space-y-4">
+            <div className="card-editorial !p-4 sm:!p-5 bg-editorial-zebra border-dashed space-y-4">
+              <h3 className="caps mb-2">Reconciliation Ledger</h3>
 
-              <div className="space-y-6">
+              <div className="space-y-3">
                 <div className="flex justify-between items-baseline border-b border-editorial-border pb-2">
                   <span className="text-xs italic font-serif">Statement Target</span>
                   <span className="text-lg font-light tracking-tight">{formatCurrency(targetBalance)}</span>
@@ -268,11 +278,11 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
                 </div>
               </div>
 
-              <div className="pt-8 space-y-4">
+              <div className="pt-4 space-y-3">
                 <button 
                   onClick={handleFinish}
                   disabled={Math.abs(difference) >= 0.01}
-                  className="w-full btn-editorial-primary !py-4 disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-full btn-editorial-primary !py-3 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Confirm Verified State
                 </button>
@@ -285,7 +295,7 @@ export default function Reconcile({ transactions, history, startingBalance, onRe
               </div>
             </div>
             
-            <div className="p-6 border-fine italic text-sm leading-relaxed text-editorial-muted font-serif bg-white">
+            <div className="p-4 border-fine italic text-sm leading-relaxed text-editorial-muted font-serif bg-white">
               <AlertCircle size={14} className="mb-2 text-editorial-ink" />
               Statement target is compared to opening balance + previously reconciled transactions through the statement date + newly selected transactions.
             </div>

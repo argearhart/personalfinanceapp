@@ -82,9 +82,9 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-editorial-bg p-4 md:p-8">
+    <div className="flex flex-col h-screen overflow-hidden bg-editorial-bg p-2 sm:p-3 md:p-4">
       {/* Editorial Header */}
-      <header className="flex flex-col md:flex-row justify-between items-baseline border-b border-black pb-4 mb-8">
+      <header className="flex flex-col md:flex-row justify-between items-baseline border-b border-black pb-3 mb-4 shrink-0">
         <div className="flex flex-col">
           <span className="caps mb-1 italic">Personal Finance Checkbook</span>
           <h1 className="text-4xl md:text-5xl font-serif">Ledger & Balance</h1>
@@ -129,9 +129,9 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden gap-8">
+      <div className="flex flex-1 min-h-0 overflow-hidden gap-4 md:gap-5">
         {/* Navigation Sidebar (Checkbook Index Style) */}
-        <aside className="hidden lg:flex flex-col w-48 border-r border-editorial-border pr-8">
+        <aside className="hidden lg:flex flex-col w-40 shrink-0 border-r border-editorial-border pr-4">
           <span className="caps mb-4 opacity-50">Checkbook Index</span>
           <nav className="space-y-4">
             {navItems.map((item) => (
@@ -189,8 +189,8 @@ export default function Layout({ children, activeTab, setActiveTab, balance, sta
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          <div className="max-w-5xl mx-auto pb-24 lg:pb-8">
+        <main className="flex-1 min-w-0 overflow-y-auto pr-0 sm:pr-1 custom-scrollbar">
+          <div className="w-full max-w-full pb-20 sm:pb-6 lg:pb-4">
             {children}
           </div>
         </main>

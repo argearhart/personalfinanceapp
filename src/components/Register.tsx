@@ -70,8 +70,8 @@ export default function Register({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-5 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div>
           <h2 className="text-xl caps mb-2">Register / Transaction Log</h2>
           <p className="text-sm text-editorial-muted italic font-serif">Comprehensive financial history in descending chronological order.</p>
@@ -117,16 +117,23 @@ export default function Register({
         </div>
       </div>
 
-      <div className="bg-white border-fine overflow-hidden">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full border-collapse">
+      <div className="min-w-0 bg-white border-fine overflow-hidden">
+        <div className="hidden md:block max-h-[min(42rem,calc(100dvh-12rem))] overflow-y-auto overflow-x-hidden">
+          <table className="w-full min-w-0 table-fixed border-collapse">
+            <colgroup>
+              <col className="w-[5.5rem]" />
+              <col />
+              <col className="w-[6.5rem] sm:w-[7.5rem]" />
+              <col className="w-[6.5rem] sm:w-[7rem]" />
+              <col className="w-28" />
+            </colgroup>
             <thead className="caps bg-neutral-100 border-b border-neutral-300 text-sm">
               <tr>
-                <th scope="col" className="text-left px-3 py-3">Date</th>
-                <th scope="col" className="text-left px-3 py-3">Description / Payee</th>
-                <th scope="col" className="text-right px-3 py-3">Category</th>
-                <th scope="col" className="text-right px-3 py-3">Amount</th>
-                <th scope="col" className="text-center px-3 py-3">Status</th>
+                <th scope="col" className="px-2 py-2.5 text-left">Date</th>
+                <th scope="col" className="px-2 py-2.5 text-left">Description / Payee</th>
+                <th scope="col" className="px-2 py-2.5 text-right">Category</th>
+                <th scope="col" className="px-2 py-2.5 text-right">Amount</th>
+                <th scope="col" className="px-2 py-2.5 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-editorial-border">
@@ -148,32 +155,32 @@ export default function Register({
                         "hover:bg-editorial-ink/5"
                       )}
                     >
-                      <td className="px-3 py-3 text-xs font-medium uppercase whitespace-nowrap">
+                      <td className="px-2 py-2.5 align-top text-xs font-medium uppercase text-editorial-ink">
                         {format(new Date(transaction.date), 'MMM dd')}
                       </td>
-                      <td className="px-3 py-3">
-                        <p className="font-semibold truncate">{transaction.payee}</p>
+                      <td className="min-w-0 max-w-0 px-2 py-2.5 align-top">
+                        <p className="font-semibold leading-snug break-words" title={transaction.payee}>{transaction.payee}</p>
                         {transaction.memo && (
-                          <p className="text-sm text-editorial-muted italic font-serif truncate mt-0.5">{transaction.memo}</p>
+                          <p className="mt-0.5 text-sm leading-snug text-editorial-muted italic font-serif break-words">{transaction.memo}</p>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-right text-sm text-editorial-muted caps truncate">
+                      <td className="px-2 py-2.5 text-right text-sm text-editorial-muted caps align-top break-words">
                         {category?.name || 'Uncategorized'}
                       </td>
                       <td
                         className={cn(
-                          "px-3 py-3 text-right font-medium whitespace-nowrap",
+                          "px-2 py-2.5 text-right text-sm font-medium tabular-nums align-top whitespace-nowrap",
                           transaction.type === 'income' ? "text-editorial-accent-green" : "text-editorial-accent-red"
                         )}
                       >
                         {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-1 py-2 align-top">
+                        <div className="flex items-start justify-center gap-1 sm:gap-1.5">
                           <span
                             aria-label={transaction.isReconciled ? 'Reconciled transaction' : 'Unreconciled transaction'}
                             className={cn(
-                              "w-3 h-3 rounded-full shrink-0",
+                              "mt-0.5 h-3 w-3 shrink-0 rounded-full",
                               transaction.isReconciled ? "bg-editorial-accent-green" : "border border-neutral-400"
                             )}
                           />
@@ -181,17 +188,17 @@ export default function Register({
                             type="button"
                             aria-label={`Edit transaction for ${transaction.payee}`}
                             onClick={() => onEditTransaction(transaction)}
-                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-editorial-ink hover:bg-editorial-ink/10 transition-all"
+                            className="shrink-0 p-1 text-editorial-ink hover:bg-editorial-ink/10 transition-all"
                           >
-                            <Pencil size={12} />
+                            <Pencil size={14} />
                           </button>
                           <button
                             type="button"
                             aria-label={`Delete transaction for ${transaction.payee}`}
                             onClick={() => onDeleteTransaction(transaction.id)}
-                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
+                            className="shrink-0 p-1 text-editorial-accent-red hover:bg-editorial-accent-red/10 transition-all"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
